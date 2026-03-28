@@ -175,6 +175,7 @@ func parseCaptureDirective(s string) (string, bool) {
 	}
 
 	varName := strings.TrimSpace(strings.TrimPrefix(inner, "capture:"))
+
 	if varName == "" {
 		return "", false
 	}
