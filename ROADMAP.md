@@ -84,10 +84,10 @@
 - [x] `crosscheck.schema.json` published alongside binary
 
 ### Distribution
-- [ ] `.goreleaser.yaml` config
-- [ ] GitHub Actions release workflow (triggers on git tag)
-- [ ] Homebrew tap (`lozymon/homebrew-tap`)
-- [ ] `install.sh` curl script
+- [x] `.goreleaser.yaml` config
+- [x] GitHub Actions release workflow (triggers on git tag)
+- [x] Homebrew tap (`lozymon/homebrew-tap`)
+- [x] `install.sh` curl script
 
 ---
 

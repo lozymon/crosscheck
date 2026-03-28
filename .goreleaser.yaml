@@ -1,0 +1,95 @@
+version: 2
+
+project_name: crosscheck
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: crosscheck
+    main: ./main.go
+    binary: crosscheck
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: crosscheck
+    builds: [crosscheck]
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - crosscheck.schema.json
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: lozymon
+    name: crosscheck
+  name_template: "v{{.Version}}"
+  footer: |
+    ## Install
+
+    **Script (Linux / macOS):**
+    ```sh
+    curl -sSL https://raw.githubusercontent.com/lozymon/crosscheck/main/install.sh | sh
+    ```
+
+    **Homebrew:**
+    ```sh
+    brew install lozymon/tap/crosscheck
+    ```
+
+    **Go install:**
+    ```sh
+    go install github.com/lozymon/crosscheck@latest
+    ```
+
+brews:
+  - name: crosscheck
+    repository:
+      owner: lozymon
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    commit_author:
+      name: goreleaser
+      email: goreleaser@crosscheck.dev
+    homepage: https://github.com/lozymon/crosscheck
+    description: "End-to-end API test runner with HTTP, database, and service assertions"
+    license: MIT
+    install: |
+      bin.install "crosscheck"
+      bin.install_symlink "crosscheck" => "cx"
+    test: |
+      system "#{bin}/crosscheck", "--version"
