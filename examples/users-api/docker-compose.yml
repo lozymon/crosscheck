@@ -2,6 +2,8 @@ services:
 
   mariadb:
     image: mariadb:11
+    ports:
+      - "3306:3306"
     environment:
       MARIADB_ROOT_PASSWORD: root
       MARIADB_DATABASE: cx
@@ -17,6 +19,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
