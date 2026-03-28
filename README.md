@@ -10,23 +10,23 @@ tests:
   - name: create order
     request:
       method: POST
-      url: "{{ BASE_URL }}/orders"
+      url: '{{ BASE_URL }}/orders'
       body: { productId: abc }
     response:
       status: 201
       body:
-        id: "{{ capture: orderId }}"
+        id: '{{ capture: orderId }}'
 
     database:
       - adapter: mysql
-        query: "SELECT status FROM orders WHERE id = :orderId"
-        params: { orderId: "{{ orderId }}" }
+        query: 'SELECT status FROM orders WHERE id = :orderId'
+        params: { orderId: '{{ orderId }}' }
         expect:
           - status: pending
 
     services:
       - adapter: redis
-        key: "order:{{ orderId }}"
+        key: 'order:{{ orderId }}'
         expect: { status: pending }
 
       - adapter: mock
@@ -90,13 +90,13 @@ cx explain tests/orders.cx.yaml     # plain-English summary
 
 Enable adapters by setting environment variables before running `cx`:
 
-| Adapter | Environment variable |
-|---|---|
-| Postgres | `POSTGRES_URL` |
-| MySQL / MariaDB | `MYSQL_URL=user:pass@tcp(host:port)/db` |
-| MongoDB | `MONGODB_URL` |
-| Redis | `REDIS_URL=redis://localhost:6379` |
-| SQS / SNS / S3 / DynamoDB / Lambda | `AWS_REGION` |
+| Adapter                            | Environment variable                    |
+| ---------------------------------- | --------------------------------------- |
+| Postgres                           | `POSTGRES_URL`                          |
+| MySQL / MariaDB                    | `MYSQL_URL=user:pass@tcp(host:port)/db` |
+| MongoDB                            | `MONGODB_URL`                           |
+| Redis                              | `REDIS_URL=redis://localhost:6379`      |
+| SQS / SNS / S3 / DynamoDB / Lambda | `AWS_REGION`                            |
 
 ---
 
