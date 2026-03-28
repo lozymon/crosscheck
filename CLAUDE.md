@@ -21,6 +21,9 @@ go test ./config/...
 # Run with verbose output
 go test -v ./...
 
+# Lint (run before every commit)
+golangci-lint run ./...
+
 # Install locally
 go install .
 ```
@@ -45,8 +48,8 @@ examples/      # Example .cx.yaml test files
 ```
 
 **Implementation status:**
-- **Done:** `config/`, `env/`, `interpolate/`, `cmd/` (CLI structure with flags, commands print stubs)
-- **Empty — Phase 1:** `httpclient/`, `runner/`, `assert/`, `reporter/`
+- **Done:** `config/`, `env/`, `interpolate/`, `cmd/`, `httpclient/`, `auth/`
+- **Empty — Phase 1:** `runner/`, `assert/`, `reporter/`
 - **Empty — Phase 2:** adapter packages (postgres, redis, mysql, mongodb, dynamodb, s3, sqs, sns)
 
 ## Key Design Decisions
@@ -134,6 +137,17 @@ github.com/lozymon/crosscheck
 ```
 
 Key dependencies: `spf13/cobra`, `gopkg.in/yaml.v3`, `joho/godotenv`, `fatih/color`.
+
+## Code Style
+
+- **Blank line before early returns and error guards** inside a block — makes guard clauses visually distinct
+- **Blank line between logically distinct steps** inside a function — each step should breathe
+- **Break long `fmt.Errorf` calls** onto multiple lines when the message + args exceed ~100 chars
+- **Section comment above each logical block** in functions longer than ~15 lines
+- **`_, _ = w.Write(...)`** in test handlers — always discard both return values explicitly
+- **`defer func() { _ = r.Body.Close() }()`** — never bare `defer r.Body.Close()`
+- **Always pass `context.Context`** as the first argument to functions that do I/O
+- Run `golangci-lint run ./...` before committing — CI enforces this on every push
 
 ## Roadmap Context
 

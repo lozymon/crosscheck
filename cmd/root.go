@@ -14,8 +14,7 @@ the result across multiple layers: HTTP response, database state, and cloud serv
 }
 
 func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }

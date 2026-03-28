@@ -27,7 +27,10 @@ func Parse(path string) (*TestFile, error) {
 	}
 
 	if tf.Version != currentVersion {
-		return nil, fmt.Errorf("%s: unsupported version %d (current: %d) — upgrade crosscheck", path, tf.Version, currentVersion)
+		return nil, fmt.Errorf(
+			"%s: unsupported version %d (current: %d) — upgrade crosscheck",
+			path, tf.Version, currentVersion,
+		)
 	}
 
 	if tf.Name == "" {

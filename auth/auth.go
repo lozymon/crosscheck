@@ -51,17 +51,22 @@ func resolveLogin(ctx context.Context, auth *config.Auth, client *httpclient.Cli
 		return nil, fmt.Errorf("auth login request: %w", err)
 	}
 
+	// Extract each declared capture variable from the response body.
 	captured := make(map[string]string, len(auth.Capture))
 	for varName, path := range auth.Capture {
 		result := resp.Get(path)
+
 		if !result.Exists() {
-			return nil, fmt.Errorf("auth capture %q: path %q not found in response (status %d body: %s)",
-				varName, path, resp.Status, resp.BodyString())
+			return nil, fmt.Errorf(
+				"auth capture %q: path %q not found in response (status %d body: %s)",
+				varName, path, resp.Status, resp.BodyString(),
+			)
 		}
+
 		captured[varName] = result.String()
 	}
 
-	// Merge captured into a local copy of vars so the inject format can reference them.
+	// Merge captured vars into a local copy so the inject format string can reference them.
 	merged := make(map[string]string, len(vars)+len(captured))
 	for k, v := range vars {
 		merged[k] = v
