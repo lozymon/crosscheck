@@ -3,10 +3,12 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
 	"github.com/lozymon/crosscheck/config"
+	"github.com/lozymon/crosscheck/discovery"
 	"github.com/lozymon/crosscheck/env"
 	"github.com/lozymon/crosscheck/httpclient"
 	"github.com/lozymon/crosscheck/reporter"
@@ -52,49 +54,96 @@ func init() {
 }
 
 func runTests(cmd *cobra.Command, path string) error {
-	// Parse the test file.
-	tf, err := config.Parse(path)
+	// Discover test files.
+	files, err := discovery.Find(path)
 
 	if err != nil {
 		return &ExitError{Code: ExitConfigError, Message: err.Error()}
 	}
 
-	// Build the variable namespace from all sources.
-	vars := env.Load(runEnvFile, runEnvVars, tf.Env)
+	if len(files) == 0 {
+		fmt.Fprintln(os.Stderr, "no *.cx.yaml test files found")
 
-	// Build the HTTP client.
+		return nil
+	}
+
+	// Build shared dependencies used across all files.
 	client := httpclient.New(runInsecure)
 
-	// Build the reporter — writes to stdout.
 	rep, err := reporter.New(runReporter, os.Stdout)
 
 	if err != nil {
 		return &ExitError{Code: ExitConfigError, Message: err.Error()}
 	}
 
-	// Run the test file.
-	result := runner.RunFile(cmd.Context(), tf, vars, client, runner.Options{})
+	var (
+		totalFailed   int
+		allResults    []*runner.FileResult
+		anyConnectErr error
+	)
 
-	// Write reporter output.
-	if writeErr := rep.Write(result); writeErr != nil {
-		fmt.Fprintf(os.Stderr, "reporter error: %v\n", writeErr)
+	// Run each file.
+	for _, file := range files {
+		tf, parseErr := config.Parse(file)
+
+		if parseErr != nil {
+			return &ExitError{Code: ExitConfigError, Message: parseErr.Error()}
+		}
+
+		// Apply --filter: keep only tests whose names match the glob pattern.
+		if runFilter != "" {
+			tf.Tests = filterTests(tf.Tests, runFilter)
+		}
+
+		vars := env.Load(runEnvFile, runEnvVars, tf.Env)
+
+		result := runner.RunFile(cmd.Context(), tf, vars, client, runner.Options{})
+
+		if writeErr := rep.Write(result); writeErr != nil {
+			fmt.Fprintf(os.Stderr, "reporter error: %v\n", writeErr)
+		}
+
+		totalFailed += result.Failed
+		allResults = append(allResults, result)
+
+		if result.SetupErr != nil {
+			anyConnectErr = result.SetupErr
+		}
 	}
 
-	// Write JSON output file alongside pretty output if requested.
-	if runOutputFile != "" {
-		if writeErr := reporter.WriteJSONFile(runOutputFile, result); writeErr != nil {
+	// Write combined JSON output file if requested.
+	if runOutputFile != "" && len(allResults) > 0 {
+		// Write the last (or only) result; for multi-file runs a single file
+		// gets the last suite. A merged format is Phase 2.
+		if writeErr := reporter.WriteJSONFile(runOutputFile, allResults[len(allResults)-1]); writeErr != nil {
 			fmt.Fprintf(os.Stderr, "output-file error: %v\n", writeErr)
 		}
 	}
 
-	// Determine exit code.
-	if result.SetupErr != nil {
-		return &ExitError{Code: ExitConnectError, Message: result.SetupErr.Error()}
+	// Determine exit code across all files.
+	if anyConnectErr != nil {
+		return &ExitError{Code: ExitConnectError, Message: anyConnectErr.Error()}
 	}
 
-	if result.Failed > 0 {
+	if totalFailed > 0 {
 		return &ExitError{Code: ExitTestFailure}
 	}
 
 	return nil
+}
+
+// filterTests returns only tests whose Name matches the glob pattern.
+// Tests with names that fail to match (or cause a pattern error) are excluded.
+func filterTests(tests []config.Test, pattern string) []config.Test {
+	var out []config.Test
+
+	for _, t := range tests {
+		matched, err := filepath.Match(pattern, t.Name)
+
+		if err == nil && matched {
+			out = append(out, t)
+		}
+	}
+
+	return out
 }

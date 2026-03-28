@@ -70,10 +70,10 @@
 - [x] Exit codes: `0` pass / `1` fail / `2` config error / `3` connection error
 
 ### File discovery
-- [ ] `cx run` with no args finds `**/*.cx.yaml` recursively
-- [ ] `cx run ./path/` finds `**/*.cx.yaml` in given directory
-- [ ] `cx run ./file.yaml` runs specific file (any `.yaml` accepted)
-- [ ] `--filter` pattern matching against test names
+- [x] `cx run` with no args finds `**/*.cx.yaml` recursively
+- [x] `cx run ./path/` finds `**/*.cx.yaml` in given directory
+- [x] `cx run ./file.yaml` runs specific file (any `.yaml` accepted)
+- [x] `--filter` pattern matching against test names
 
 ### Commands implementation
 - [ ] `cx validate` — parse + schema check, no requests fired
