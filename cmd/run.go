@@ -8,9 +8,16 @@ import (
 
 	"github.com/spf13/cobra"
 
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+
+	"github.com/lozymon/crosscheck/adapters/dynamodb"
+	"github.com/lozymon/crosscheck/adapters/lambda"
 	"github.com/lozymon/crosscheck/adapters/mongodb"
 	"github.com/lozymon/crosscheck/adapters/mysql"
 	"github.com/lozymon/crosscheck/adapters/redis"
+	s3adapter "github.com/lozymon/crosscheck/adapters/s3"
+	"github.com/lozymon/crosscheck/adapters/sns"
+	"github.com/lozymon/crosscheck/adapters/sqs"
 	"github.com/lozymon/crosscheck/config"
 	"github.com/lozymon/crosscheck/discovery"
 	"github.com/lozymon/crosscheck/env"
@@ -82,6 +89,22 @@ func runTests(cmd *cobra.Command, path string) error {
 
 	// Connect optional adapters from environment.
 	opts := runner.Options{}
+
+	// AWS adapters — all share one config loaded from the default credential chain.
+	// Activated when AWS_REGION is set; credentials come from env, profile, or instance role.
+	if awsRegion := os.Getenv("AWS_REGION"); awsRegion != "" {
+		awsCfg, awsErr := awsconfig.LoadDefaultConfig(cmd.Context())
+
+		if awsErr != nil {
+			return &ExitError{Code: ExitConnectError, Message: fmt.Sprintf("aws config: %v", awsErr)}
+		}
+
+		opts.SQS = sqs.New(awsCfg)
+		opts.SNS = sns.New(awsCfg)
+		opts.S3 = s3adapter.New(awsCfg)
+		opts.DynamoDB = dynamodb.New(awsCfg)
+		opts.Lambda = lambda.New(awsCfg)
+	}
 
 	if mongoURL := os.Getenv("MONGODB_URL"); mongoURL != "" {
 		mongoAdapter, mongoErr := mongodb.New(cmd.Context(), mongoURL)

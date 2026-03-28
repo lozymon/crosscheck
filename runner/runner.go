@@ -11,11 +11,17 @@ package runner
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/lozymon/crosscheck/adapters/dynamodb"
+	"github.com/lozymon/crosscheck/adapters/lambda"
 	"github.com/lozymon/crosscheck/adapters/mongodb"
 	"github.com/lozymon/crosscheck/adapters/mysql"
 	"github.com/lozymon/crosscheck/adapters/postgres"
 	"github.com/lozymon/crosscheck/adapters/redis"
+	s3adapter "github.com/lozymon/crosscheck/adapters/s3"
+	"github.com/lozymon/crosscheck/adapters/sns"
+	"github.com/lozymon/crosscheck/adapters/sqs"
 	"github.com/lozymon/crosscheck/assert"
 	"github.com/lozymon/crosscheck/auth"
 	"github.com/lozymon/crosscheck/config"
@@ -66,6 +72,21 @@ type Options struct {
 	// Redis adapter to use for `adapter: redis` service assertions.
 	// If nil, any test containing a redis assertion will fail with an error.
 	Redis *redis.Adapter
+
+	// SQS adapter to use for `adapter: sqs` service assertions.
+	SQS *sqs.Adapter
+
+	// SNS adapter to use for `adapter: sns` service assertions (reads via SQS).
+	SNS *sns.Adapter
+
+	// S3 adapter to use for `adapter: s3` service assertions.
+	S3 *s3adapter.Adapter
+
+	// DynamoDB adapter to use for `adapter: dynamodb` service assertions.
+	DynamoDB *dynamodb.Adapter
+
+	// Lambda adapter to use for `adapter: lambda` service assertions.
+	Lambda *lambda.Adapter
 }
 
 // RunFile executes all tests in a parsed test file and returns a FileResult.
@@ -398,19 +419,32 @@ func runMongoDBAssert(ctx context.Context, dbAssert config.DBAssert, vars map[st
 
 // runServiceAssert dispatches a service assertion to the correct adapter handler.
 func runServiceAssert(ctx context.Context, svcAssert config.ServiceAssert, vars map[string]string, opts Options, step string) []Failure {
-	switch svcAssert.Adapter {
+	// Interpolate all string fields before dispatching.
+	sa := interpolateServiceAssert(svcAssert, vars)
+
+	switch sa.Adapter {
 	case "redis":
-		return runRedisAssert(ctx, svcAssert, vars, opts, step)
+		return runRedisAssert(ctx, sa, opts, step)
+	case "sqs":
+		return runSQSAssert(ctx, sa, opts, step)
+	case "sns":
+		return runSNSAssert(ctx, sa, opts, step)
+	case "s3":
+		return runS3Assert(ctx, sa, opts, step)
+	case "dynamodb":
+		return runDynamoDBAssert(ctx, sa, opts, step)
+	case "lambda":
+		return runLambdaAssert(ctx, sa, opts, step)
 	default:
 		return []Failure{{
 			Step:    step,
-			Message: fmt.Sprintf("adapter %q is not supported in this build", svcAssert.Adapter),
+			Message: fmt.Sprintf("adapter %q is not supported in this build", sa.Adapter),
 		}}
 	}
 }
 
-// runRedisAssert runs a Redis service assertion.
-func runRedisAssert(ctx context.Context, svcAssert config.ServiceAssert, vars map[string]string, opts Options, step string) []Failure {
+// runRedisAssert runs a Redis service assertion (sa fields already interpolated).
+func runRedisAssert(ctx context.Context, sa config.ServiceAssert, opts Options, step string) []Failure {
 	if opts.Redis == nil {
 		return []Failure{{
 			Step:    step,
@@ -418,20 +452,293 @@ func runRedisAssert(ctx context.Context, svcAssert config.ServiceAssert, vars ma
 		}}
 	}
 
-	key := interpolate.Apply(svcAssert.Key, vars)
+	check := func() ([]Failure, error) {
+		actual, err := opts.Redis.Get(ctx, sa.Key)
 
-	actual, err := opts.Redis.Get(ctx, key)
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}, nil
+		}
+
+		var out []Failure
+
+		for _, f := range redis.Assert(actual, sa.Expect) {
+			out = append(out, Failure{Step: step, Message: f.Error()})
+		}
+
+		return out, nil
+	}
+
+	if sa.WaitFor != nil {
+		failures, err := pollServiceAssert(ctx, sa.WaitFor, check)
+
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}
+		}
+
+		return failures
+	}
+
+	failures, _ := check()
+
+	return failures
+}
+
+// runSQSAssert runs an SQS service assertion (sa fields already interpolated).
+func runSQSAssert(ctx context.Context, sa config.ServiceAssert, opts Options, step string) []Failure {
+	if opts.SQS == nil {
+		return []Failure{{
+			Step:    step,
+			Message: "sqs adapter not configured (set AWS_REGION and credentials to enable)",
+		}}
+	}
+
+	check := func() ([]Failure, error) {
+		msgs, err := opts.SQS.Peek(ctx, sa.Queue)
+
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}, nil
+		}
+
+		var out []Failure
+
+		for _, f := range sqs.Assert(msgs, sa.Expect) {
+			out = append(out, Failure{Step: step, Message: f.Error()})
+		}
+
+		return out, nil
+	}
+
+	if sa.WaitFor != nil {
+		failures, err := pollServiceAssert(ctx, sa.WaitFor, check)
+
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}
+		}
+
+		return failures
+	}
+
+	failures, _ := check()
+
+	return failures
+}
+
+// runSNSAssert runs an SNS service assertion via SQS (sa fields already interpolated).
+func runSNSAssert(ctx context.Context, sa config.ServiceAssert, opts Options, step string) []Failure {
+	if opts.SNS == nil {
+		return []Failure{{
+			Step:    step,
+			Message: "sns adapter not configured (set AWS_REGION and credentials to enable)",
+		}}
+	}
+
+	check := func() ([]Failure, error) {
+		msgs, err := opts.SNS.Peek(ctx, sa.Queue)
+
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}, nil
+		}
+
+		var out []Failure
+
+		for _, f := range sns.Assert(msgs, sa.Expect) {
+			out = append(out, Failure{Step: step, Message: f.Error()})
+		}
+
+		return out, nil
+	}
+
+	if sa.WaitFor != nil {
+		failures, err := pollServiceAssert(ctx, sa.WaitFor, check)
+
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}
+		}
+
+		return failures
+	}
+
+	failures, _ := check()
+
+	return failures
+}
+
+// runS3Assert runs an S3 service assertion (sa fields already interpolated).
+func runS3Assert(ctx context.Context, sa config.ServiceAssert, opts Options, step string) []Failure {
+	if opts.S3 == nil {
+		return []Failure{{
+			Step:    step,
+			Message: "s3 adapter not configured (set AWS_REGION and credentials to enable)",
+		}}
+	}
+
+	check := func() ([]Failure, error) {
+		actual, err := opts.S3.GetObject(ctx, sa.Bucket, sa.Key)
+
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}, nil
+		}
+
+		var out []Failure
+
+		for _, f := range s3adapter.Assert(actual, sa.Expect) {
+			out = append(out, Failure{Step: step, Message: f.Error()})
+		}
+
+		return out, nil
+	}
+
+	if sa.WaitFor != nil {
+		failures, err := pollServiceAssert(ctx, sa.WaitFor, check)
+
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}
+		}
+
+		return failures
+	}
+
+	failures, _ := check()
+
+	return failures
+}
+
+// runDynamoDBAssert runs a DynamoDB service assertion (sa fields already interpolated).
+func runDynamoDBAssert(ctx context.Context, sa config.ServiceAssert, opts Options, step string) []Failure {
+	if opts.DynamoDB == nil {
+		return []Failure{{
+			Step:    step,
+			Message: "dynamodb adapter not configured (set AWS_REGION and credentials to enable)",
+		}}
+	}
+
+	check := func() ([]Failure, error) {
+		actual, err := opts.DynamoDB.GetItem(ctx, sa.Table, sa.KeyName, sa.Key, sa.SortKeyName, sa.SortKey)
+
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}, nil
+		}
+
+		var out []Failure
+
+		for _, f := range dynamodb.Assert(actual, sa.Expect) {
+			out = append(out, Failure{Step: step, Message: f.Error()})
+		}
+
+		return out, nil
+	}
+
+	if sa.WaitFor != nil {
+		failures, err := pollServiceAssert(ctx, sa.WaitFor, check)
+
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}
+		}
+
+		return failures
+	}
+
+	failures, _ := check()
+
+	return failures
+}
+
+// runLambdaAssert invokes a Lambda function and asserts the response (sa fields already interpolated).
+func runLambdaAssert(ctx context.Context, sa config.ServiceAssert, opts Options, step string) []Failure {
+	if opts.Lambda == nil {
+		return []Failure{{
+			Step:    step,
+			Message: "lambda adapter not configured (set AWS_REGION and credentials to enable)",
+		}}
+	}
+
+	actual, err := opts.Lambda.Invoke(ctx, sa.Key, sa.Payload)
 
 	if err != nil {
 		return []Failure{{Step: step, Message: err.Error()}}
 	}
 
-	redisFailures := redis.Assert(actual, svcAssert.Expect)
-
 	var out []Failure
 
-	for _, f := range redisFailures {
+	for _, f := range lambda.Assert(actual, sa.Expect) {
 		out = append(out, Failure{Step: step, Message: f.Error()})
+	}
+
+	return out
+}
+
+// pollServiceAssert polls check until it returns no failures or the timeout elapses.
+func pollServiceAssert(ctx context.Context, waitFor *config.WaitFor, check func() ([]Failure, error)) ([]Failure, error) {
+	timeout, err := time.ParseDuration(waitFor.Timeout)
+
+	if err != nil {
+		return nil, fmt.Errorf("wait_for: invalid timeout %q: %w", waitFor.Timeout, err)
+	}
+
+	interval, err := time.ParseDuration(waitFor.Interval)
+
+	if err != nil {
+		return nil, fmt.Errorf("wait_for: invalid interval %q: %w", waitFor.Interval, err)
+	}
+
+	deadline := time.Now().Add(timeout)
+
+	for {
+		failures, checkErr := check()
+
+		if checkErr != nil {
+			return nil, checkErr
+		}
+
+		if len(failures) == 0 {
+			return nil, nil
+		}
+
+		if time.Now().After(deadline) {
+			return failures, nil
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(interval):
+		}
+	}
+}
+
+// interpolateServiceAssert returns a copy of sa with all string fields interpolated.
+func interpolateServiceAssert(sa config.ServiceAssert, vars map[string]string) config.ServiceAssert {
+	out := sa
+	out.Key = interpolate.Apply(sa.Key, vars)
+	out.KeyName = interpolate.Apply(sa.KeyName, vars)
+	out.SortKey = interpolate.Apply(sa.SortKey, vars)
+	out.SortKeyName = interpolate.Apply(sa.SortKeyName, vars)
+	out.Queue = interpolate.Apply(sa.Queue, vars)
+	out.Bucket = interpolate.Apply(sa.Bucket, vars)
+	out.Table = interpolate.Apply(sa.Table, vars)
+
+	if sa.Expect != nil {
+		out.Expect = make(map[string]any, len(sa.Expect))
+
+		for k, v := range sa.Expect {
+			if s, ok := v.(string); ok {
+				out.Expect[k] = interpolate.Apply(s, vars)
+			} else {
+				out.Expect[k] = v
+			}
+		}
+	}
+
+	if sa.Payload != nil {
+		out.Payload = make(map[string]any, len(sa.Payload))
+
+		for k, v := range sa.Payload {
+			if s, ok := v.(string); ok {
+				out.Payload[k] = interpolate.Apply(s, vars)
+			} else {
+				out.Payload[k] = v
+			}
+		}
 	}
 
 	return out

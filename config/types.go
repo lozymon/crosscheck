@@ -64,12 +64,19 @@ type DBAssert struct {
 	Expect  []map[string]any `yaml:"expect"`
 }
 
-// ServiceAssert defines a service (Redis, SQS, etc.) assertion.
+// ServiceAssert defines a service (Redis, SQS, SNS, S3, DynamoDB, Lambda) assertion.
 type ServiceAssert struct {
-	Adapter string         `yaml:"adapter"`
-	Key     string         `yaml:"key"`   // Redis key
-	Queue   string         `yaml:"queue"` // SQS queue name
-	Expect  map[string]any `yaml:"expect"`
+	Adapter     string         `yaml:"adapter"`
+	Key         string         `yaml:"key"`          // Redis key | S3 object key | Lambda function name | DynamoDB partition key value
+	KeyName     string         `yaml:"key_name"`     // DynamoDB: partition key attribute name (default: "id")
+	SortKey     string         `yaml:"sort_key"`     // DynamoDB: sort key value (optional)
+	SortKeyName string         `yaml:"sort_key_name"` // DynamoDB: sort key attribute name
+	Queue       string         `yaml:"queue"`        // SQS queue URL | SNS: SQS queue URL subscribed to the topic
+	Bucket      string         `yaml:"bucket"`       // S3 bucket name
+	Table       string         `yaml:"table"`        // DynamoDB table name
+	Payload     map[string]any `yaml:"payload"`      // Lambda: invocation input payload
+	WaitFor     *WaitFor       `yaml:"wait_for"`     // poll until assertion passes (async flows)
+	Expect      map[string]any `yaml:"expect"`
 }
 
 // WaitFor defines polling behaviour for async assertions.

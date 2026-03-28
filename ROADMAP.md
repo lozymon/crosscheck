@@ -97,11 +97,11 @@
 - [x] Redis adapter (`go-redis/v9`)
 - [x] MySQL adapter (`go-sql-driver`)
 - [x] MongoDB adapter (`mongo-driver`)
-- [ ] SQS adapter (`aws-sdk-go-v2`) — assert messages published to queue
-- [ ] SNS adapter (`aws-sdk-go-v2`) — assert notifications published
-- [ ] S3 adapter (`aws-sdk-go-v2`) — assert objects written to bucket
-- [ ] DynamoDB adapter (`aws-sdk-go-v2`) — assert items written/updated
-- [ ] Lambda adapter (`aws-sdk-go-v2`) — direct invocation
+- [x] SQS adapter (`aws-sdk-go-v2`) — assert messages published to queue
+- [x] SNS adapter (`aws-sdk-go-v2`) — assert notifications published
+- [x] S3 adapter (`aws-sdk-go-v2`) — assert objects written to bucket
+- [x] DynamoDB adapter (`aws-sdk-go-v2`) — assert items written/updated
+- [x] Lambda adapter (`aws-sdk-go-v2`) — direct invocation
 
 ### Runner
 - [ ] Retry runner — honour `retry:` + `retry_delay:` fields, log each attempt
