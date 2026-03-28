@@ -8,7 +8,7 @@ env:
 # Start a local mock server to capture the webhook the app fires.
 # MOCK_URL is injected automatically — we pass it to the app via WEBHOOK_URL.
 mock:
-  port: 0
+  port: 9099
 
 setup:
   - run: |

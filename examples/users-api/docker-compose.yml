@@ -34,7 +34,12 @@ services:
       DB_PASSWORD: cx
       DB_NAME: cx
       REDIS_URL: redis://redis:6379
-      WEBHOOK_URL: "${WEBHOOK_URL:-}"
+      # crosscheck starts its mock server on the host at port 9099.
+      # host.docker.internal resolves to the host from inside the container.
+      WEBHOOK_URL: "http://host.docker.internal:9099/"
+    extra_hosts:
+      # Required on Linux — Docker Desktop sets this automatically.
+      - "host.docker.internal:host-gateway"
     depends_on:
       mariadb:
         condition: service_healthy
