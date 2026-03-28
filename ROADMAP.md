@@ -81,7 +81,7 @@
 - [x] `cx explain` — static plain-English summary of a test file
 
 ### Schema
-- [ ] `crosscheck.schema.json` published alongside binary
+- [x] `crosscheck.schema.json` published alongside binary
 
 ### Distribution
 - [ ] `.goreleaser.yaml` config
