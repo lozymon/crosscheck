@@ -11,14 +11,18 @@ mock:
   port: 9099
 
 setup:
-  - run: |
-      docker compose exec -T mariadb mariadb -ucx -pcx cx -e "DELETE FROM users;"
+  - run: >-
+      docker compose -f docker-compose.yml
+      exec -T mariadb mariadb -ucx -pcx cx -e "DELETE FROM users;"
+
+teardown:
+  - run: docker compose -f docker-compose.yml down
 
 tests:
   - name: create user
     request:
       method: POST
-      url: "{{ BASE_URL }}/users"
+      url: '{{ BASE_URL }}/users'
       headers:
         Content-Type: application/json
       body:
@@ -27,16 +31,16 @@ tests:
     response:
       status: 201
       body:
-        id: "{{ capture: userId }}"
+        id: '{{ capture: userId }}'
         name: Alice
         email: alice@example.com
 
     # MariaDB — row was inserted
     database:
       - adapter: mysql
-        query: "SELECT name, email FROM users WHERE id = :userId"
+        query: 'SELECT name, email FROM users WHERE id = :userId'
         params:
-          userId: "{{ userId }}"
+          userId: '{{ userId }}'
         expect:
           - name: Alice
             email: alice@example.com
@@ -44,7 +48,7 @@ tests:
     # Redis — key was cached
     services:
       - adapter: redis
-        key: "user:{{ userId }}"
+        key: 'user:{{ userId }}'
         expect:
           name: Alice
           email: alice@example.com
@@ -63,17 +67,17 @@ tests:
   - name: fetch user
     request:
       method: GET
-      url: "{{ BASE_URL }}/users/{{ userId }}"
+      url: '{{ BASE_URL }}/users/{{ userId }}'
     response:
       status: 200
       body:
-        id: "{{ userId }}"
+        id: '{{ userId }}'
         name: Alice
         email: alice@example.com
 
   - name: fetch unknown user returns 404
     request:
       method: GET
-      url: "{{ BASE_URL }}/users/00000000-0000-0000-0000-000000000000"
+      url: '{{ BASE_URL }}/users/00000000-0000-0000-0000-000000000000'
     response:
       status: 404

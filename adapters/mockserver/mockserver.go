@@ -53,7 +53,7 @@ type Server struct {
 // Start launches a new mock server on the given port.
 // Pass 0 to let the OS pick a free port.
 func Start(port int) (*Server, error) {
-	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	addr := fmt.Sprintf("0.0.0.0:%d", port)
 
 	ln, err := net.Listen("tcp", addr)
 
@@ -61,8 +61,12 @@ func Start(port int) (*Server, error) {
 		return nil, fmt.Errorf("mock server listen %s: %w", addr, err)
 	}
 
+	// Addr returns "0.0.0.0:<port>" — replace with 127.0.0.1 for the MOCK_URL
+	// injected into test vars (used by the local process / curl).
+	// The server itself accepts connections from all interfaces including Docker.
+	_, portStr, _ := net.SplitHostPort(ln.Addr().String())
 	s := &Server{
-		URL:      "http://" + ln.Addr().String(),
+		URL:      "http://127.0.0.1:" + portStr,
 		listener: ln,
 	}
 

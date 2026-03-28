@@ -33,3 +33,7 @@ go.work.sum
 
 # OS
 .DS_Store
+
+
+node_modules/
+dist/

@@ -125,12 +125,17 @@ func runTests(cmd *cobra.Command, path string) error {
 		}
 	}()
 
+	// Load env file early so adapter URL checks below see values from .env
+	// in addition to the shell environment.
+	// Priority matches the full Load call made per-file: CLI > shell > .env file.
+	earlyEnv := env.Load(runEnvFile, runEnvVars, nil)
+
 	// Connect optional adapters from environment.
 	opts := runner.Options{DefaultTimeout: runTimeout}
 
 	// AWS adapters — all share one config loaded from the default credential chain.
 	// Activated when AWS_REGION is set; credentials come from env, profile, or instance role.
-	if awsRegion := os.Getenv("AWS_REGION"); awsRegion != "" {
+	if awsRegion := earlyEnv["AWS_REGION"]; awsRegion != "" {
 		awsCfg, awsErr := awsconfig.LoadDefaultConfig(cmd.Context())
 
 		if awsErr != nil {
@@ -144,7 +149,7 @@ func runTests(cmd *cobra.Command, path string) error {
 		opts.Lambda = lambda.New(awsCfg)
 	}
 
-	if mongoURL := os.Getenv("MONGODB_URL"); mongoURL != "" {
+	if mongoURL := earlyEnv["MONGODB_URL"]; mongoURL != "" {
 		mongoAdapter, mongoErr := mongodb.New(cmd.Context(), mongoURL)
 
 		if mongoErr != nil {
@@ -156,7 +161,7 @@ func runTests(cmd *cobra.Command, path string) error {
 		opts.MongoDB = mongoAdapter
 	}
 
-	if mysqlURL := os.Getenv("MYSQL_URL"); mysqlURL != "" {
+	if mysqlURL := earlyEnv["MYSQL_URL"]; mysqlURL != "" {
 		mysqlAdapter, mysqlErr := mysql.New(cmd.Context(), mysqlURL)
 
 		if mysqlErr != nil {
@@ -168,7 +173,7 @@ func runTests(cmd *cobra.Command, path string) error {
 		opts.MySQL = mysqlAdapter
 	}
 
-	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
+	if redisURL := earlyEnv["REDIS_URL"]; redisURL != "" {
 		redisAdapter, redisErr := redis.New(cmd.Context(), redisURL)
 
 		if redisErr != nil {
