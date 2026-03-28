@@ -47,6 +47,7 @@ func resolveLogin(ctx context.Context, auth *config.Auth, client *httpclient.Cli
 	}
 
 	resp, err := client.Do(ctx, auth.Request, vars)
+
 	if err != nil {
 		return nil, fmt.Errorf("auth login request: %w", err)
 	}

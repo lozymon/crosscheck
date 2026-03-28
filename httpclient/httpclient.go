@@ -49,6 +49,7 @@ func (c *Client) Do(ctx context.Context, req *config.Request, vars map[string]st
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(bodyBytes))
+
 	if err != nil {
 		return nil, fmt.Errorf("building request: %w", err)
 	}
@@ -61,6 +62,7 @@ func (c *Client) Do(ctx context.Context, req *config.Request, vars map[string]st
 	}
 
 	resp, err := c.http.Do(httpReq) //nolint:bodyclose // closed inside newResponse
+
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}

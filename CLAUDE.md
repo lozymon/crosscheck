@@ -140,7 +140,7 @@ Key dependencies: `spf13/cobra`, `gopkg.in/yaml.v3`, `joho/godotenv`, `fatih/col
 
 ## Code Style
 
-- **Blank line before early returns and error guards** inside a block — makes guard clauses visually distinct
+- **Blank line before every `if err != nil`** and before early returns — makes guard clauses visually distinct
 - **Blank line between logically distinct steps** inside a function — each step should breathe
 - **Break long `fmt.Errorf` calls** onto multiple lines when the message + args exceed ~100 chars
 - **Section comment above each logical block** in functions longer than ~15 lines
