@@ -27,12 +27,14 @@ import (
 )
 
 var (
+	runConfig     string
 	runEnvFile    string
 	runEnvVars    []string
 	runFilter     string
 	runInsecure   bool
 	runOutputFile string
 	runReporter   string
+	runTimeout    string
 	runWatch      bool
 )
 
@@ -59,16 +61,42 @@ If no path is given, recursively finds all *.cx.yaml files in the current direct
 }
 
 func init() {
+	runCmd.Flags().StringVar(&runConfig, "config", config.DefaultGlobalConfigPath, "Path to global config file")
 	runCmd.Flags().StringVar(&runEnvFile, "env-file", ".env", "Path to .env file")
 	runCmd.Flags().StringArrayVar(&runEnvVars, "env", nil, "Override env variables (KEY=VALUE)")
 	runCmd.Flags().StringVar(&runFilter, "filter", "", "Run only tests matching pattern (e.g. 'order*')")
 	runCmd.Flags().BoolVar(&runInsecure, "insecure", false, "Skip TLS certificate verification")
 	runCmd.Flags().StringVar(&runOutputFile, "output-file", "", "Write JSON results to file")
 	runCmd.Flags().StringVar(&runReporter, "reporter", "pretty", "Reporter format: pretty, json, junit, html")
-	runCmd.Flags().BoolVar(&runWatch, "watch", false, "Watch for file changes and re-run (Phase 2)")
+	runCmd.Flags().StringVar(&runTimeout, "timeout", "", "Default per-test timeout (e.g. 10s) — overrides .crosscheck.yaml")
+	runCmd.Flags().BoolVar(&runWatch, "watch", false, "Watch for file changes and re-run")
 }
 
 func runTests(cmd *cobra.Command, path string) error {
+	// Load global config — apply values for any flag not explicitly set by the user.
+	// Priority: CLI flags > .crosscheck.yaml > built-in defaults.
+	globalCfg, err := config.LoadGlobal(runConfig, cmd.Flags().Changed("config"))
+
+	if err != nil {
+		return &ExitError{Code: ExitConfigError, Message: err.Error()}
+	}
+
+	if !cmd.Flags().Changed("reporter") && globalCfg.Reporter != "" {
+		runReporter = globalCfg.Reporter
+	}
+
+	if !cmd.Flags().Changed("insecure") && globalCfg.Insecure {
+		runInsecure = globalCfg.Insecure
+	}
+
+	if !cmd.Flags().Changed("env-file") && globalCfg.EnvFile != "" {
+		runEnvFile = globalCfg.EnvFile
+	}
+
+	if !cmd.Flags().Changed("timeout") && globalCfg.Timeout != "" {
+		runTimeout = globalCfg.Timeout
+	}
+
 	// Discover test files.
 	files, err := discovery.Find(path)
 
@@ -98,7 +126,7 @@ func runTests(cmd *cobra.Command, path string) error {
 	}()
 
 	// Connect optional adapters from environment.
-	opts := runner.Options{}
+	opts := runner.Options{DefaultTimeout: runTimeout}
 
 	// AWS adapters — all share one config loaded from the default credential chain.
 	// Activated when AWS_REGION is set; credentials come from env, profile, or instance role.

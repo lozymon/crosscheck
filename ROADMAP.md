@@ -115,7 +115,7 @@
 - [ ] `cx explain --ai` — Claude API powered explanation (`CROSSCHECK_AI_KEY`)
 
 ### Config
-- [ ] `.crosscheck.yaml` global config file (`reporter`, `timeout`, `insecure`, `env-file`)
+- [x] `.crosscheck.yaml` global config file (`reporter`, `timeout`, `insecure`, `env-file`)
 
 ### Mock server
 - [ ] Outbound call capture — assert calls made to external services

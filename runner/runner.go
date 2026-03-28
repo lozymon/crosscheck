@@ -88,6 +88,11 @@ type Options struct {
 
 	// Lambda adapter to use for `adapter: lambda` service assertions.
 	Lambda *lambda.Adapter
+
+	// DefaultTimeout is applied to tests that do not specify their own timeout:.
+	// Value must be a valid time.Duration string (e.g. "10s", "500ms").
+	// An empty string means no timeout.
+	DefaultTimeout string
 }
 
 // RunFile executes all tests in a parsed test file and returns a FileResult.
@@ -162,6 +167,22 @@ func runTest(
 	opts Options,
 ) TestResult {
 	tr := TestResult{Name: test.Name}
+
+	// Apply per-test timeout: test.Timeout takes precedence over opts.DefaultTimeout.
+	timeoutStr := test.Timeout
+
+	if timeoutStr == "" {
+		timeoutStr = opts.DefaultTimeout
+	}
+
+	if timeoutStr != "" {
+		if d, err := time.ParseDuration(timeoutStr); err == nil {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, d)
+
+			defer cancel()
+		}
+	}
 
 	// Per-test setup runs once before all attempts.
 	if err := hooks.RunAll(ctx, test.Setup, vars); err != nil {
