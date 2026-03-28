@@ -1,6 +1,7 @@
 package httpclient_test
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -17,12 +18,12 @@ func TestDo_GET(t *testing.T) {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	}))
 	defer srv.Close()
 
 	client := httpclient.New(false)
-	resp, err := client.Do(&config.Request{
+	resp, err := client.Do(context.Background(), &config.Request{
 		Method: "GET",
 		URL:    srv.URL + "/ping",
 	}, nil)
@@ -52,12 +53,12 @@ func TestDo_POST_withBody(t *testing.T) {
 			t.Errorf("unexpected body: %v", m)
 		}
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(`{"id":"ord_1","status":"pending"}`))
+		_, _ = w.Write([]byte(`{"id":"ord_1","status":"pending"}`))
 	}))
 	defer srv.Close()
 
 	client := httpclient.New(false)
-	resp, err := client.Do(&config.Request{
+	resp, err := client.Do(context.Background(), &config.Request{
 		Method: "POST",
 		URL:    srv.URL + "/orders",
 		Body:   map[string]any{"productId": "abc-123"},
@@ -76,7 +77,7 @@ func TestDo_interpolatesURLAndHeaders(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotAuth = r.Header.Get("Authorization")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{}`))
+		_, _ = w.Write([]byte(`{}`))
 	}))
 	defer srv.Close()
 
@@ -86,7 +87,7 @@ func TestDo_interpolatesURLAndHeaders(t *testing.T) {
 	}
 
 	client := httpclient.New(false)
-	_, err := client.Do(&config.Request{
+	_, err := client.Do(context.Background(), &config.Request{
 		Method:  "GET",
 		URL:     "{{ BASE_URL }}/orders",
 		Headers: map[string]string{"Authorization": "Bearer {{ TOKEN }}"},
@@ -103,12 +104,12 @@ func TestDo_interpolatesURLAndHeaders(t *testing.T) {
 func TestResponse_Get(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"user":{"id":"u_1","email":"test@example.com"}}`))
+		_, _ = w.Write([]byte(`{"user":{"id":"u_1","email":"test@example.com"}}`))
 	}))
 	defer srv.Close()
 
 	client := httpclient.New(false)
-	resp, err := client.Do(&config.Request{Method: "GET", URL: srv.URL}, nil)
+	resp, err := client.Do(context.Background(), &config.Request{Method: "GET", URL: srv.URL}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -118,7 +119,7 @@ func TestResponse_Get(t *testing.T) {
 		want string
 	}{
 		{"user.id", "u_1"},
-		{"$.user.id", "u_1"},      // JSONPath-style with leading $.
+		{"$.user.id", "u_1"}, // JSONPath-style with leading $.
 		{"$.user.email", "test@example.com"},
 	}
 
@@ -134,12 +135,12 @@ func TestDo_customHeaderOverridesContentType(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotContentType = r.Header.Get("Content-Type")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{}`))
+		_, _ = w.Write([]byte(`{}`))
 	}))
 	defer srv.Close()
 
 	client := httpclient.New(false)
-	_, err := client.Do(&config.Request{
+	_, err := client.Do(context.Background(), &config.Request{
 		Method:  "POST",
 		URL:     srv.URL,
 		Headers: map[string]string{"Content-Type": "application/x-www-form-urlencoded"},

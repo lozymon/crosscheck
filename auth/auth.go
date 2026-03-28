@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/lozymon/crosscheck/config"
@@ -18,7 +19,7 @@ type Result struct {
 
 // Resolve executes the auth block and returns a Result.
 // Returns nil, nil when auth is nil.
-func Resolve(auth *config.Auth, client *httpclient.Client, vars map[string]string) (*Result, error) {
+func Resolve(ctx context.Context, auth *config.Auth, client *httpclient.Client, vars map[string]string) (*Result, error) {
 	if auth == nil {
 		return nil, nil
 	}
@@ -26,7 +27,7 @@ func Resolve(auth *config.Auth, client *httpclient.Client, vars map[string]strin
 	case "static":
 		return resolveStatic(auth, vars)
 	case "login":
-		return resolveLogin(auth, client, vars)
+		return resolveLogin(ctx, auth, client, vars)
 	default:
 		return nil, fmt.Errorf("unknown auth type %q: must be \"static\" or \"login\"", auth.Type)
 	}
@@ -40,12 +41,12 @@ func resolveStatic(auth *config.Auth, vars map[string]string) (*Result, error) {
 	}, nil
 }
 
-func resolveLogin(auth *config.Auth, client *httpclient.Client, vars map[string]string) (*Result, error) {
+func resolveLogin(ctx context.Context, auth *config.Auth, client *httpclient.Client, vars map[string]string) (*Result, error) {
 	if auth.Request == nil {
 		return nil, fmt.Errorf("auth type \"login\" requires a request block")
 	}
 
-	resp, err := client.Do(auth.Request, vars)
+	resp, err := client.Do(ctx, auth.Request, vars)
 	if err != nil {
 		return nil, fmt.Errorf("auth login request: %w", err)
 	}

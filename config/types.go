@@ -14,10 +14,10 @@ type TestFile struct {
 
 // Auth defines how to authenticate before running tests.
 type Auth struct {
-	Type    string      `yaml:"type"` // "login" or "static"
-	Request *Request    `yaml:"request"`
-	Capture CaptureMap  `yaml:"capture"`
-	Inject  AuthInject  `yaml:"inject"`
+	Type    string     `yaml:"type"` // "login" or "static"
+	Request *Request   `yaml:"request"`
+	Capture CaptureMap `yaml:"capture"`
+	Inject  AuthInject `yaml:"inject"`
 }
 
 type AuthInject struct {
@@ -50,18 +50,18 @@ type Request struct {
 
 // ResponseAssert defines expected HTTP response assertions.
 type ResponseAssert struct {
-	Status  int            `yaml:"status"`
+	Status  int               `yaml:"status"`
 	Headers map[string]string `yaml:"headers"`
-	Body    any            `yaml:"body"`
+	Body    any               `yaml:"body"`
 }
 
 // DBAssert defines a database assertion after a request.
 type DBAssert struct {
-	Adapter string            `yaml:"adapter"`
-	Query   string            `yaml:"query"`
-	Params  map[string]any    `yaml:"params"`
-	WaitFor *WaitFor          `yaml:"wait_for"`
-	Expect  []map[string]any  `yaml:"expect"`
+	Adapter string           `yaml:"adapter"`
+	Query   string           `yaml:"query"`
+	Params  map[string]any   `yaml:"params"`
+	WaitFor *WaitFor         `yaml:"wait_for"`
+	Expect  []map[string]any `yaml:"expect"`
 }
 
 // ServiceAssert defines a service (Redis, SQS, etc.) assertion.

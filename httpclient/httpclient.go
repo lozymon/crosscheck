@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -33,7 +34,7 @@ func New(insecure bool) *Client {
 }
 
 // Do executes the request after applying {{ VAR }} interpolation from vars.
-func (c *Client) Do(req *config.Request, vars map[string]string) (*Response, error) {
+func (c *Client) Do(ctx context.Context, req *config.Request, vars map[string]string) (*Response, error) {
 	method := strings.ToUpper(interpolate.Apply(req.Method, vars))
 	url := interpolate.Apply(req.URL, vars)
 	headers := interpolate.ApplyToMap(req.Headers, vars)
@@ -47,7 +48,7 @@ func (c *Client) Do(req *config.Request, vars map[string]string) (*Response, err
 		}
 	}
 
-	httpReq, err := http.NewRequest(method, url, bytes.NewReader(bodyBytes))
+	httpReq, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, fmt.Errorf("building request: %w", err)
 	}
@@ -59,7 +60,7 @@ func (c *Client) Do(req *config.Request, vars map[string]string) (*Response, err
 		httpReq.Header.Set(k, v)
 	}
 
-	resp, err := c.http.Do(httpReq)
+	resp, err := c.http.Do(httpReq) //nolint:bodyclose // closed inside newResponse
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}

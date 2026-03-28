@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,7 +12,7 @@ import (
 )
 
 func TestResolve_nil(t *testing.T) {
-	result, err := auth.Resolve(nil, httpclient.New(false), nil)
+	result, err := auth.Resolve(context.Background(), nil, httpclient.New(false), nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -21,7 +22,7 @@ func TestResolve_nil(t *testing.T) {
 }
 
 func TestResolve_unknownType(t *testing.T) {
-	_, err := auth.Resolve(&config.Auth{Type: "oauth2"}, httpclient.New(false), nil)
+	_, err := auth.Resolve(context.Background(), &config.Auth{Type: "oauth2"}, httpclient.New(false), nil)
 	if err == nil {
 		t.Fatal("expected error for unknown auth type")
 	}
@@ -30,7 +31,7 @@ func TestResolve_unknownType(t *testing.T) {
 func TestResolve_static(t *testing.T) {
 	vars := map[string]string{"AUTH_TOKEN": "mysecret"}
 
-	result, err := auth.Resolve(&config.Auth{
+	result, err := auth.Resolve(context.Background(), &config.Auth{
 		Type: "static",
 		Inject: config.AuthInject{
 			Header: "Authorization",
@@ -55,13 +56,13 @@ func TestResolve_static(t *testing.T) {
 func TestResolve_login(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"accessToken":"tok_abc123","userId":"u_1"}`))
+		_, _ = w.Write([]byte(`{"accessToken":"tok_abc123","userId":"u_1"}`))
 	}))
 	defer srv.Close()
 
 	vars := map[string]string{"AUTH_SERVICE": srv.URL}
 
-	result, err := auth.Resolve(&config.Auth{
+	result, err := auth.Resolve(context.Background(), &config.Auth{
 		Type: "login",
 		Request: &config.Request{
 			Method: "POST",
@@ -94,11 +95,11 @@ func TestResolve_login(t *testing.T) {
 func TestResolve_login_capturePathMissing(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"error":"invalid credentials"}`))
+		_, _ = w.Write([]byte(`{"error":"invalid credentials"}`))
 	}))
 	defer srv.Close()
 
-	_, err := auth.Resolve(&config.Auth{
+	_, err := auth.Resolve(context.Background(), &config.Auth{
 		Type: "login",
 		Request: &config.Request{
 			Method: "POST",
@@ -114,7 +115,7 @@ func TestResolve_login_capturePathMissing(t *testing.T) {
 }
 
 func TestResolve_login_missingRequestBlock(t *testing.T) {
-	_, err := auth.Resolve(&config.Auth{Type: "login"}, httpclient.New(false), nil)
+	_, err := auth.Resolve(context.Background(), &config.Auth{Type: "login"}, httpclient.New(false), nil)
 	if err == nil {
 		t.Fatal("expected error when login has no request block")
 	}

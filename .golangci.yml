@@ -1,0 +1,26 @@
+version: "2"
+
+linters:
+  enable:
+    - errcheck       # unhandled errors
+    - govet          # go vet checks
+    - staticcheck    # advanced static analysis
+    - unused         # unused code
+    - misspell       # common spelling mistakes
+    - exhaustive     # missing switch cases on enums
+    - noctx          # http requests without context
+    - bodyclose      # unclosed http response bodies
+
+formatters:
+  enable:
+    - gofmt          # formatting
+    - goimports      # import ordering
+
+formatters-settings:
+  gofmt:
+    simplify: true
+  goimports:
+    local-prefixes: github.com/lozymon/crosscheck
+
+issues:
+  max-same-issues: 0

@@ -7,13 +7,13 @@ import (
 )
 
 var (
-	runEnvFile   string
-	runEnvVars   []string
-	runFilter    string
-	runInsecure  bool
+	runEnvFile    string
+	runEnvVars    []string
+	runFilter     string
+	runInsecure   bool
 	runOutputFile string
-	runReporter  string
-	runWatch     bool
+	runReporter   string
+	runWatch      bool
 )
 
 var runCmd = &cobra.Command{
