@@ -117,6 +117,162 @@ func TestNew_unknownFormat(t *testing.T) {
 	}
 }
 
+// ---- html ----
+
+func TestHTML_validDocument(t *testing.T) {
+	var buf bytes.Buffer
+
+	r, err := reporter.New("html", &buf)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err = r.Write(passingResult()); err != nil {
+		t.Fatalf("write error: %v", err)
+	}
+
+	if err = r.Close(); err != nil {
+		t.Fatalf("close error: %v", err)
+	}
+
+	out := buf.String()
+
+	if !strings.HasPrefix(out, "<!DOCTYPE html>") {
+		t.Errorf("expected HTML doctype, got:\n%.80s", out)
+	}
+
+	if !strings.Contains(out, "</html>") {
+		t.Error("expected closing </html> tag")
+	}
+}
+
+func TestHTML_passingSuite(t *testing.T) {
+	var buf bytes.Buffer
+
+	r, _ := reporter.New("html", &buf)
+	_ = r.Write(passingResult())
+	_ = r.Close()
+
+	out := buf.String()
+
+	if !strings.Contains(out, "order suite") {
+		t.Error("expected suite name in output")
+	}
+
+	if !strings.Contains(out, "create order") {
+		t.Error("expected test name in output")
+	}
+
+	if !strings.Contains(out, "icon-pass") {
+		t.Error("expected pass icon class in output")
+	}
+}
+
+func TestHTML_failingSuite(t *testing.T) {
+	var buf bytes.Buffer
+
+	r, _ := reporter.New("html", &buf)
+	_ = r.Write(failingResult())
+	_ = r.Close()
+
+	out := buf.String()
+
+	if !strings.Contains(out, "icon-fail") {
+		t.Error("expected fail icon class in output")
+	}
+
+	// html/template escapes quotes — check for the unambiguous parts.
+	if !strings.Contains(out, "status: expected") || !strings.Contains(out, "404") {
+		t.Errorf("expected failure message in output")
+	}
+
+	if !strings.Contains(out, "response") {
+		t.Error("expected step name 'response' in output")
+	}
+}
+
+func TestHTML_setupError(t *testing.T) {
+	var buf bytes.Buffer
+
+	r, _ := reporter.New("html", &buf)
+	_ = r.Write(&runner.FileResult{
+		Name:     "suite",
+		SetupErr: errors.New("seed.sql not found"),
+	})
+	_ = r.Close()
+
+	out := buf.String()
+
+	if !strings.Contains(out, "Setup failed") {
+		t.Error("expected 'Setup failed' in output")
+	}
+
+	if !strings.Contains(out, "seed.sql not found") {
+		t.Error("expected error message in output")
+	}
+}
+
+func TestHTML_multiSuite(t *testing.T) {
+	var buf bytes.Buffer
+
+	r, _ := reporter.New("html", &buf)
+	_ = r.Write(passingResult())
+	_ = r.Write(failingResult())
+	_ = r.Close()
+
+	out := buf.String()
+
+	// Both suites should appear in a single document.
+	if strings.Count(out, "order suite") != 2 {
+		t.Errorf("expected suite name to appear twice, got:\n%s", out)
+	}
+
+	if strings.Count(out, "<!DOCTYPE html>") != 1 {
+		t.Error("expected exactly one DOCTYPE declaration")
+	}
+}
+
+func TestHTML_retryAttemptsShown(t *testing.T) {
+	var buf bytes.Buffer
+
+	r, _ := reporter.New("html", &buf)
+	_ = r.Write(&runner.FileResult{
+		Name:   "suite",
+		Passed: 1,
+		Tests: []runner.TestResult{
+			{Name: "flaky test", Passed: true, Attempts: 3},
+		},
+	})
+	_ = r.Close()
+
+	if !strings.Contains(buf.String(), "3 attempts") {
+		t.Error("expected attempt count in output")
+	}
+}
+
+func TestHTML_summaryTotals(t *testing.T) {
+	var buf bytes.Buffer
+
+	r, _ := reporter.New("html", &buf)
+	_ = r.Write(failingResult())
+	_ = r.Close()
+
+	out := buf.String()
+
+	if !strings.Contains(out, "2 tests") {
+		t.Errorf("expected '2 tests' in summary, got output:\n%.500s", out)
+	}
+
+	if !strings.Contains(out, "1 passed") {
+		t.Errorf("expected '1 passed' in summary")
+	}
+
+	if !strings.Contains(out, "1 failed") {
+		t.Errorf("expected '1 failed' in summary")
+	}
+}
+
 // ---- json ----
 
 func TestJSON_structure(t *testing.T) {

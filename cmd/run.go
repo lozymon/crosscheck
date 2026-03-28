@@ -64,7 +64,7 @@ func init() {
 	runCmd.Flags().StringVar(&runFilter, "filter", "", "Run only tests matching pattern (e.g. 'order*')")
 	runCmd.Flags().BoolVar(&runInsecure, "insecure", false, "Skip TLS certificate verification")
 	runCmd.Flags().StringVar(&runOutputFile, "output-file", "", "Write JSON results to file")
-	runCmd.Flags().StringVar(&runReporter, "reporter", "pretty", "Reporter format: pretty, json, junit")
+	runCmd.Flags().StringVar(&runReporter, "reporter", "pretty", "Reporter format: pretty, json, junit, html")
 	runCmd.Flags().BoolVar(&runWatch, "watch", false, "Watch for file changes and re-run (Phase 2)")
 }
 

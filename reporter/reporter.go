@@ -34,9 +34,11 @@ func New(format string, w io.Writer) (Reporter, error) {
 		return &jsonReporter{w: w}, nil
 	case "junit":
 		return &junitReporter{w: w}, nil
+	case "html":
+		return &htmlReporter{w: w}, nil
 	default:
 		return nil, fmt.Errorf(
-			"unknown reporter format %q: must be \"pretty\", \"json\", or \"junit\"",
+			"unknown reporter format %q: must be \"pretty\", \"json\", \"junit\", or \"html\"",
 			format,
 		)
 	}

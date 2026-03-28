@@ -109,6 +109,7 @@
 
 ### Reporter
 - [x] JUnit XML reporter (`--reporter junit`)
+- [x] HTML reporter (`--reporter html`) — self-contained single-file report
 
 ### Commands
 - [ ] `cx explain --ai` — Claude API powered explanation (`CROSSCHECK_AI_KEY`)
