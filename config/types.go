@@ -7,9 +7,20 @@ type TestFile struct {
 	Description string            `yaml:"description"`
 	Env         map[string]string `yaml:"env"`
 	Auth        *Auth             `yaml:"auth"`
+	Mock        *MockServer       `yaml:"mock"`
 	Setup       []Hook            `yaml:"setup"`
 	Teardown    []Hook            `yaml:"teardown"`
 	Tests       []Test            `yaml:"tests"`
+}
+
+// MockServer configures the built-in outbound-call capture server.
+// When present, crosscheck starts a local HTTP server before the tests run
+// and injects its base URL as MOCK_URL into the variable namespace.
+// Tests can point their application at MOCK_URL and later assert that the
+// expected requests were received using `adapter: mock` in the services block.
+type MockServer struct {
+	// Port to listen on. 0 (or omitted) lets the OS pick a free port.
+	Port int `yaml:"port"`
 }
 
 // Auth defines how to authenticate before running tests.
@@ -64,18 +75,20 @@ type DBAssert struct {
 	Expect  []map[string]any `yaml:"expect"`
 }
 
-// ServiceAssert defines a service (Redis, SQS, SNS, S3, DynamoDB, Lambda) assertion.
+// ServiceAssert defines a service (Redis, SQS, SNS, S3, DynamoDB, Lambda, mock) assertion.
 type ServiceAssert struct {
 	Adapter     string         `yaml:"adapter"`
-	Key         string         `yaml:"key"`          // Redis key | S3 object key | Lambda function name | DynamoDB partition key value
-	KeyName     string         `yaml:"key_name"`     // DynamoDB: partition key attribute name (default: "id")
-	SortKey     string         `yaml:"sort_key"`     // DynamoDB: sort key value (optional)
+	Key         string         `yaml:"key"`           // Redis key | S3 object key | Lambda function name | DynamoDB partition key value
+	KeyName     string         `yaml:"key_name"`      // DynamoDB: partition key attribute name (default: "id")
+	SortKey     string         `yaml:"sort_key"`      // DynamoDB: sort key value (optional)
 	SortKeyName string         `yaml:"sort_key_name"` // DynamoDB: sort key attribute name
-	Queue       string         `yaml:"queue"`        // SQS queue URL | SNS: SQS queue URL subscribed to the topic
-	Bucket      string         `yaml:"bucket"`       // S3 bucket name
-	Table       string         `yaml:"table"`        // DynamoDB table name
-	Payload     map[string]any `yaml:"payload"`      // Lambda: invocation input payload
-	WaitFor     *WaitFor       `yaml:"wait_for"`     // poll until assertion passes (async flows)
+	Queue       string         `yaml:"queue"`         // SQS queue URL | SNS: SQS queue URL subscribed to the topic
+	Bucket      string         `yaml:"bucket"`        // S3 bucket name
+	Table       string         `yaml:"table"`         // DynamoDB table name
+	Payload     map[string]any `yaml:"payload"`       // Lambda: invocation input payload
+	Path        string         `yaml:"path"`          // mock: URL path filter (e.g. "/webhook")
+	Method      string         `yaml:"method"`        // mock: HTTP method filter (e.g. "POST"); empty = any
+	WaitFor     *WaitFor       `yaml:"wait_for"`      // poll until assertion passes (async flows)
 	Expect      map[string]any `yaml:"expect"`
 }
 

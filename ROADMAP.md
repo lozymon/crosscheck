@@ -118,7 +118,7 @@
 - [x] `.crosscheck.yaml` global config file (`reporter`, `timeout`, `insecure`, `env-file`)
 
 ### Mock server
-- [ ] Outbound call capture — assert calls made to external services
+- [x] Outbound call capture — assert calls made to external services
 
 ---
 

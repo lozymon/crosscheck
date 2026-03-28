@@ -15,6 +15,7 @@ import (
 
 	"github.com/lozymon/crosscheck/adapters/dynamodb"
 	"github.com/lozymon/crosscheck/adapters/lambda"
+	"github.com/lozymon/crosscheck/adapters/mockserver"
 	"github.com/lozymon/crosscheck/adapters/mongodb"
 	"github.com/lozymon/crosscheck/adapters/mysql"
 	"github.com/lozymon/crosscheck/adapters/postgres"
@@ -93,6 +94,10 @@ type Options struct {
 	// Value must be a valid time.Duration string (e.g. "10s", "500ms").
 	// An empty string means no timeout.
 	DefaultTimeout string
+
+	// Mock is the running mock capture server for this test file.
+	// Set automatically by RunFile when the test file contains a mock: block.
+	Mock *mockserver.Server
 }
 
 // RunFile executes all tests in a parsed test file and returns a FileResult.
@@ -104,6 +109,23 @@ func RunFile(ctx context.Context, tf *config.TestFile, vars map[string]string, c
 	// Work on a local copy so we don't mutate the caller's map.
 	// Captured vars accumulate here across tests.
 	workVars := copyVars(vars)
+
+	// Start mock server if the test file requests one.
+	// MOCK_URL is injected so tests can point their app at the server.
+	if tf.Mock != nil {
+		srv, srvErr := mockserver.Start(tf.Mock.Port)
+
+		if srvErr != nil {
+			result.SetupErr = fmt.Errorf("mock server: %w", srvErr)
+
+			return result
+		}
+
+		defer srv.Close()
+
+		opts.Mock = srv
+		workVars["MOCK_URL"] = srv.URL
+	}
 
 	// File-level teardown always runs.
 	defer func() {
@@ -512,6 +534,8 @@ func runServiceAssert(ctx context.Context, svcAssert config.ServiceAssert, vars 
 		return runDynamoDBAssert(ctx, sa, opts, step)
 	case "lambda":
 		return runLambdaAssert(ctx, sa, opts, step)
+	case "mock":
+		return runMockAssert(ctx, sa, opts, step)
 	default:
 		return []Failure{{
 			Step:    step,
@@ -744,6 +768,42 @@ func runLambdaAssert(ctx context.Context, sa config.ServiceAssert, opts Options,
 	return out
 }
 
+// runMockAssert asserts that the mock capture server received the expected request.
+func runMockAssert(ctx context.Context, sa config.ServiceAssert, opts Options, step string) []Failure {
+	if opts.Mock == nil {
+		return []Failure{{
+			Step:    step,
+			Message: "mock adapter not available — add a mock: block to your test file",
+		}}
+	}
+
+	check := func() ([]Failure, error) {
+		reqs := opts.Mock.Requests(sa.Method, sa.Path)
+
+		var out []Failure
+
+		for _, f := range mockserver.Assert(reqs, sa.Expect) {
+			out = append(out, Failure{Step: step, Message: f.Error()})
+		}
+
+		return out, nil
+	}
+
+	if sa.WaitFor != nil {
+		failures, err := pollServiceAssert(ctx, sa.WaitFor, check)
+
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}
+		}
+
+		return failures
+	}
+
+	failures, _ := check()
+
+	return failures
+}
+
 // pollServiceAssert polls check until it returns no failures or the timeout elapses.
 func pollServiceAssert(ctx context.Context, waitFor *config.WaitFor, check func() ([]Failure, error)) ([]Failure, error) {
 	timeout, err := time.ParseDuration(waitFor.Timeout)
@@ -793,6 +853,8 @@ func interpolateServiceAssert(sa config.ServiceAssert, vars map[string]string) c
 	out.Queue = interpolate.Apply(sa.Queue, vars)
 	out.Bucket = interpolate.Apply(sa.Bucket, vars)
 	out.Table = interpolate.Apply(sa.Table, vars)
+	out.Path = interpolate.Apply(sa.Path, vars)
+	out.Method = interpolate.Apply(sa.Method, vars)
 
 	if sa.Expect != nil {
 		out.Expect = make(map[string]any, len(sa.Expect))
