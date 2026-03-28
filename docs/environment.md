@@ -55,7 +55,7 @@ cx run --env-file .env.staging
 
 ```yaml
 env:
-  BASE_URL: http://localhost:3000   # used only if no other source sets BASE_URL
+  BASE_URL: http://localhost:3000 # used only if no other source sets BASE_URL
   TIMEOUT: 30s
 ```
 
@@ -66,6 +66,7 @@ Fallback defaults baked into the test file. Useful for documenting what variable
 ## Example — same key at multiple levels
 
 Given:
+
 - `.env`: `BASE_URL=http://localhost:3000`
 - Shell: `export BASE_URL=http://staging.example.com`
 - YAML: `env: { BASE_URL: http://dev.internal }`
@@ -80,10 +81,10 @@ Add `--env BASE_URL=http://prod.example.com` and it becomes `http://prod.example
 
 The following environment variables activate optional adapters. They follow the same priority rules and can be set in any source:
 
-| Variable | Adapter |
-|---|---|
-| `POSTGRES_URL` | Postgres |
-| `MYSQL_URL` | MySQL / MariaDB |
-| `MONGODB_URL` | MongoDB |
-| `REDIS_URL` | Redis |
-| `AWS_REGION` | SQS, SNS, S3, DynamoDB, Lambda |
+| Variable       | Adapter                        |
+| -------------- | ------------------------------ |
+| `POSTGRES_URL` | Postgres                       |
+| `MYSQL_URL`    | MySQL / MariaDB                |
+| `MONGODB_URL`  | MongoDB                        |
+| `REDIS_URL`    | Redis                          |
+| `AWS_REGION`   | SQS, SNS, S3, DynamoDB, Lambda |

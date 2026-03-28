@@ -3,16 +3,19 @@
 ## Install
 
 **curl (Linux/macOS):**
+
 ```bash
 curl -sSL https://raw.githubusercontent.com/lozymon/crosscheck/main/install.sh | sh
 ```
 
 **Go install:**
+
 ```bash
 go install github.com/lozymon/crosscheck@latest
 ```
 
 **Build from source:**
+
 ```bash
 git clone https://github.com/lozymon/crosscheck
 cd crosscheck
@@ -39,11 +42,13 @@ tests:
 ```
 
 Run it:
+
 ```bash
 cx run hello.cx.yaml
 ```
 
 Output:
+
 ```
 hello world
 
@@ -61,23 +66,25 @@ version: 1
 name: my API
 
 env:
-  BASE_URL: http://localhost:3000  # fallback default
+  BASE_URL: http://localhost:3000 # fallback default
 
 tests:
   - name: health check
     request:
       method: GET
-      url: "{{ BASE_URL }}/health"
+      url: '{{ BASE_URL }}/health'
     response:
       status: 200
 ```
 
 Override at runtime:
+
 ```bash
 cx run --env BASE_URL=http://staging.example.com
 ```
 
 Or from a `.env` file:
+
 ```bash
 cx run --env-file .env.staging
 ```
@@ -91,17 +98,17 @@ tests:
   - name: create item
     request:
       method: POST
-      url: "{{ BASE_URL }}/items"
-      body: { name: "widget" }
+      url: '{{ BASE_URL }}/items'
+      body: { name: 'widget' }
     response:
       status: 201
       body:
-        id: "{{ capture: itemId }}"   # saves $.id into itemId
+        id: '{{ capture: itemId }}' # saves $.id into itemId
 
   - name: fetch item
     request:
       method: GET
-      url: "{{ BASE_URL }}/items/{{ itemId }}"   # uses captured value
+      url: '{{ BASE_URL }}/items/{{ itemId }}' # uses captured value
     response:
       status: 200
 ```

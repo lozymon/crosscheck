@@ -52,6 +52,7 @@ reporter: junit       → uses junit (only if --reporter not passed)
 ## Example setups
 
 **Monorepo with a shared `.env`:**
+
 ```yaml
 env-file: config/.env.local
 reporter: pretty
@@ -59,11 +60,14 @@ timeout: 15s
 ```
 
 **CI environment:**
+
 ```yaml
 reporter: junit
 timeout: 30s
 ```
+
 Run with:
+
 ```bash
 cx run --config .crosscheck.ci.yaml
 ```

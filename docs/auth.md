@@ -13,7 +13,7 @@ auth:
   type: static
   inject:
     header: Authorization
-    format: "Bearer {{ API_KEY }}"
+    format: 'Bearer {{ API_KEY }}'
 ```
 
 - `{{ API_KEY }}` is resolved from your environment (shell, `.env` file, or `--env` flag).
@@ -30,17 +30,17 @@ auth:
   type: login
   request:
     method: POST
-    url: "{{ AUTH_SERVICE }}/auth/login"
+    url: '{{ AUTH_SERVICE }}/auth/login'
     headers:
       Content-Type: application/json
     body:
-      email: "{{ USER_EMAIL }}"
-      password: "{{ USER_PASSWORD }}"
+      email: '{{ USER_EMAIL }}'
+      password: '{{ USER_PASSWORD }}'
   capture:
-    token: "$.accessToken"     # JSONPath into the login response body
+    token: '$.accessToken' # JSONPath into the login response body
   inject:
     header: Authorization
-    format: "Bearer {{ token }}"
+    format: 'Bearer {{ token }}'
 ```
 
 - `capture` maps variable names to JSONPath expressions evaluated against the login response body.
@@ -58,9 +58,9 @@ tests:
   - name: unauthenticated request
     request:
       method: GET
-      url: "{{ BASE_URL }}/public"
+      url: '{{ BASE_URL }}/public'
       headers:
-        Authorization: ""   # clears the injected header for this test
+        Authorization: '' # clears the injected header for this test
 ```
 
 ---
@@ -75,13 +75,13 @@ auth:
   type: static
   inject:
     header: X-Api-Key
-    format: "{{ API_KEY }}"
+    format: '{{ API_KEY }}'
 
 tests:
   - name: list items
     request:
       method: GET
-      url: "{{ BASE_URL }}/items"
+      url: '{{ BASE_URL }}/items'
     response:
       status: 200
 ```
@@ -96,21 +96,21 @@ auth:
   type: login
   request:
     method: POST
-    url: "{{ BASE_URL }}/auth/login"
+    url: '{{ BASE_URL }}/auth/login'
     body:
-      email: "{{ ADMIN_EMAIL }}"
-      password: "{{ ADMIN_PASSWORD }}"
+      email: '{{ ADMIN_EMAIL }}'
+      password: '{{ ADMIN_PASSWORD }}'
   capture:
-    token: "$.token"
+    token: '$.token'
   inject:
     header: Authorization
-    format: "Bearer {{ token }}"
+    format: 'Bearer {{ token }}'
 
 tests:
   - name: get profile
     request:
       method: GET
-      url: "{{ BASE_URL }}/me"
+      url: '{{ BASE_URL }}/me'
     response:
       status: 200
 ```

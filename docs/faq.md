@@ -14,13 +14,13 @@
 
 The adapter URL environment variable is not set. Check:
 
-| Error | Variable to set |
-|---|---|
-| `postgres adapter not configured` | `POSTGRES_URL` |
-| `mysql adapter not configured` | `MYSQL_URL` |
-| `mongodb adapter not configured` | `MONGODB_URL` |
-| `redis adapter not configured` | `REDIS_URL` |
-| `sqs/sns/s3/dynamodb/lambda adapter not configured` | `AWS_REGION` |
+| Error                                               | Variable to set |
+| --------------------------------------------------- | --------------- |
+| `postgres adapter not configured`                   | `POSTGRES_URL`  |
+| `mysql adapter not configured`                      | `MYSQL_URL`     |
+| `mongodb adapter not configured`                    | `MONGODB_URL`   |
+| `redis adapter not configured`                      | `REDIS_URL`     |
+| `sqs/sns/s3/dynamodb/lambda adapter not configured` | `AWS_REGION`    |
 
 These can be set in your shell, `.env` file, or with `--env`.
 
@@ -29,6 +29,7 @@ These can be set in your shell, `.env` file, or with `--env`.
 ## `no *.cx.yaml test files found`
 
 crosscheck looks for files matching `*.cx.yaml` recursively. Make sure your files:
+
 - Have the `.cx.yaml` extension (not just `.yaml`)
 - Are in the path you passed to `cx run`
 
@@ -37,6 +38,7 @@ crosscheck looks for files matching `*.cx.yaml` recursively. Make sure your file
 ## `status: expected "201", got "500"`
 
 Your application returned an error. Check:
+
 1. Application logs for the actual error.
 2. That the service is running and the URL is correct.
 3. That the request body is valid (missing required fields, wrong Content-Type header).
@@ -46,6 +48,7 @@ Your application returned an error. Check:
 ## Captured variable is empty
 
 If `{{ capture: myVar }}` results in an empty string:
+
 1. Check the response body matches the expected JSON structure.
 2. The capture extracts `$.key` from the body — make sure the key exists at the top level.
 3. Print the raw response by temporarily adding `--reporter json` to see what the API actually returns.

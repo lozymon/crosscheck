@@ -12,17 +12,17 @@ If no path is given, recursively finds all `*.cx.yaml` files in the current dire
 
 ### Flags
 
-| Flag | Default | Description |
-|---|---|---|
-| `--config` | `.crosscheck.yaml` | Path to global config file |
-| `--env KEY=VALUE` | — | Override an env variable (repeatable) |
-| `--env-file` | `.env` | Path to `.env` file |
-| `--filter` | — | Run only tests whose name matches a glob pattern |
-| `--insecure` | `false` | Skip TLS certificate verification |
-| `--output-file` | — | Write JSON results to a file |
-| `--reporter` | `pretty` | Output format: `pretty`, `json`, `junit`, `html` |
-| `--timeout` | — | Default per-test timeout, e.g. `10s` |
-| `--watch` | `false` | Re-run tests on file changes |
+| Flag              | Default            | Description                                      |
+| ----------------- | ------------------ | ------------------------------------------------ |
+| `--config`        | `.crosscheck.yaml` | Path to global config file                       |
+| `--env KEY=VALUE` | —                  | Override an env variable (repeatable)            |
+| `--env-file`      | `.env`             | Path to `.env` file                              |
+| `--filter`        | —                  | Run only tests whose name matches a glob pattern |
+| `--insecure`      | `false`            | Skip TLS certificate verification                |
+| `--output-file`   | —                  | Write JSON results to a file                     |
+| `--reporter`      | `pretty`           | Output format: `pretty`, `json`, `junit`, `html` |
+| `--timeout`       | —                  | Default per-test timeout, e.g. `10s`             |
+| `--watch`         | `false`            | Re-run tests on file changes                     |
 
 ### Examples
 
@@ -107,9 +107,9 @@ cx explain tests/orders.cx.yaml
 
 ## Exit codes
 
-| Code | Meaning |
-|---|---|
-| `0` | All tests passed |
-| `1` | One or more tests failed |
-| `2` | YAML validation / config error |
-| `3` | Connection error (database or service adapter) |
+| Code | Meaning                                        |
+| ---- | ---------------------------------------------- |
+| `0`  | All tests passed                               |
+| `1`  | One or more tests failed                       |
+| `2`  | YAML validation / config error                 |
+| `3`  | Connection error (database or service adapter) |

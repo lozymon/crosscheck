@@ -44,7 +44,10 @@ cx run --reporter json
       "name": "fetch order",
       "passed": false,
       "failures": [
-        { "step": "response", "message": "status: expected \"200\", got \"404\"" }
+        {
+          "step": "response",
+          "message": "status: expected \"200\", got \"404\""
+        }
       ]
     }
   ]

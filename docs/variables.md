@@ -14,12 +14,13 @@ tests:
   - name: get user
     request:
       method: GET
-      url: "{{ BASE_URL }}/users/123"
+      url: '{{ BASE_URL }}/users/123'
 ```
 
 `{{ VAR }}` is replaced with the value of `VAR` from the current variable namespace. Unknown variables are replaced with an empty string.
 
 Interpolation applies to:
+
 - `request.url`
 - `request.headers` (values)
 - `request.body` (string values, recursively)
@@ -41,7 +42,7 @@ Capture extracts a value from the HTTP response body and saves it as a variable 
 ```yaml
 response:
   body:
-    id: "{{ capture: orderId }}"
+    id: '{{ capture: orderId }}'
 ```
 
 This evaluates `$.id` against the response JSON and stores the result as `orderId`.
@@ -55,17 +56,17 @@ tests:
   - name: create order
     request:
       method: POST
-      url: "{{ BASE_URL }}/orders"
+      url: '{{ BASE_URL }}/orders'
       body: { productId: abc }
     response:
       status: 201
       body:
-        id: "{{ capture: orderId }}"    # saves $.id → orderId
+        id: '{{ capture: orderId }}' # saves $.id → orderId
 
   - name: fetch order
     request:
       method: GET
-      url: "{{ BASE_URL }}/orders/{{ orderId }}"   # uses captured value
+      url: '{{ BASE_URL }}/orders/{{ orderId }}' # uses captured value
     response:
       status: 200
 ```
@@ -80,14 +81,14 @@ Variables captured during auth (`auth.capture`) are also available in all tests:
 auth:
   type: login
   capture:
-    token: "$.accessToken"
-    userId: "$.user.id"
+    token: '$.accessToken'
+    userId: '$.user.id'
 
 tests:
   - name: get own profile
     request:
       method: GET
-      url: "{{ BASE_URL }}/users/{{ userId }}"   # userId captured from login
+      url: '{{ BASE_URL }}/users/{{ userId }}' # userId captured from login
 ```
 
 ---
@@ -103,7 +104,7 @@ mock:
 env:
   # Pass the mock server URL to your app via an environment variable
   # (typically done outside the YAML via docker-compose or shell)
-  WEBHOOK_URL: "http://host.docker.internal:9099/"
+  WEBHOOK_URL: 'http://host.docker.internal:9099/'
 ```
 
 ---

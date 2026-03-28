@@ -22,15 +22,15 @@ Adapters connect crosscheck to databases and services so you can assert on state
 ```yaml
 database:
   - adapter: postgres
-    query: "SELECT status, total FROM orders WHERE id = :orderId"
+    query: 'SELECT status, total FROM orders WHERE id = :orderId'
     params:
-      orderId: "{{ orderId }}"
+      orderId: '{{ orderId }}'
     wait_for:
       timeout: 10s
       interval: 500ms
     expect:
       - status: pending
-        total: "99.99"
+        total: '99.99'
 ```
 
 - Query params use `:varName` syntax — converted to `$1` placeholders automatically.
@@ -47,9 +47,9 @@ database:
 ```yaml
 database:
   - adapter: mysql
-    query: "SELECT name, email FROM users WHERE id = :userId"
+    query: 'SELECT name, email FROM users WHERE id = :userId'
     params:
-      userId: "{{ userId }}"
+      userId: '{{ userId }}'
     expect:
       - name: Alice
         email: alice@example.com
@@ -67,9 +67,9 @@ database:
 ```yaml
 database:
   - adapter: mongodb
-    query: users           # collection name
+    query: users # collection name
     params:
-      email: alice@example.com   # filter document
+      email: alice@example.com # filter document
     expect:
       - name: Alice
         role: admin
@@ -88,7 +88,7 @@ database:
 ```yaml
 services:
   - adapter: redis
-    key: "user:{{ userId }}"
+    key: 'user:{{ userId }}'
     expect:
       name: Alice
       email: alice@example.com
@@ -114,7 +114,7 @@ services:
       interval: 1s
     expect:
       eventType: order.created
-      orderId: "{{ orderId }}"
+      orderId: '{{ orderId }}'
 ```
 
 - Uses a non-destructive peek (`VisibilityTimeout=0`) — messages are not consumed.
@@ -154,13 +154,13 @@ services:
 services:
   - adapter: s3
     bucket: my-exports-bucket
-    key: "reports/{{ reportId }}.json"
+    key: 'reports/{{ reportId }}.json'
     wait_for:
       timeout: 30s
       interval: 2s
     expect:
       status: complete
-      recordCount: "42"
+      recordCount: '42'
 ```
 
 - Downloads the object and JSON-parses the body.
@@ -177,16 +177,16 @@ services:
 services:
   - adapter: dynamodb
     table: Orders
-    key: "{{ orderId }}"          # partition key value
-    key_name: orderId             # partition key attribute name (default: "id")
-    sort_key: "2024-01-01"        # optional sort key value
-    sort_key_name: createdAt      # sort key attribute name
+    key: '{{ orderId }}' # partition key value
+    key_name: orderId # partition key attribute name (default: "id")
+    sort_key: '2024-01-01' # optional sort key value
+    sort_key_name: createdAt # sort key attribute name
     wait_for:
       timeout: 10s
       interval: 500ms
     expect:
       status: shipped
-      total: "99.99"
+      total: '99.99'
 ```
 
 - Uses `GetItem` — asserts a single item by primary key.
@@ -201,12 +201,12 @@ services:
 ```yaml
 services:
   - adapter: lambda
-    key: my-function-name     # function name or ARN
+    key: my-function-name # function name or ARN
     payload:
-      userId: "{{ userId }}"
+      userId: '{{ userId }}'
       action: notify
     expect:
-      statusCode: "200"
+      statusCode: '200'
       message: ok
 ```
 
@@ -225,7 +225,7 @@ The mock server captures outbound HTTP calls made by your application so you can
 
 ```yaml
 mock:
-  port: 9099   # 0 = auto-assign
+  port: 9099 # 0 = auto-assign
 ```
 
 `MOCK_URL` is injected automatically — pass it to your app as `WEBHOOK_URL` or similar.
@@ -233,14 +233,14 @@ mock:
 ```yaml
 services:
   - adapter: mock
-    path: /webhook        # URL path filter (empty = any path)
-    method: POST          # method filter (empty = any method)
+    path: /webhook # URL path filter (empty = any path)
+    method: POST # method filter (empty = any method)
     wait_for:
       timeout: 5s
       interval: 200ms
     expect:
       event: order.created
-      orderId: "{{ orderId }}"
+      orderId: '{{ orderId }}'
 ```
 
 - **Any-match semantics:** at least one captured request matching `path`/`method` must satisfy all `expect` fields.

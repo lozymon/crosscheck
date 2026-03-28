@@ -47,12 +47,12 @@ jobs:
 Store sensitive values in GitHub Actions secrets and pass them as env vars:
 
 ```yaml
-      - name: Run tests
-        env:
-          BASE_URL: ${{ secrets.STAGING_URL }}
-          API_KEY: ${{ secrets.API_KEY }}
-          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
-        run: cx run --reporter junit
+- name: Run tests
+  env:
+    BASE_URL: ${{ secrets.STAGING_URL }}
+    API_KEY: ${{ secrets.API_KEY }}
+    POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+  run: cx run --reporter junit
 ```
 
 ---
@@ -103,12 +103,12 @@ jobs:
 
 crosscheck exits with a non-zero code on failure, which causes CI to mark the step as failed:
 
-| Code | Meaning |
-|---|---|
-| `0` | All tests passed |
-| `1` | One or more tests failed |
-| `2` | Config / YAML validation error |
-| `3` | Connection error (database or service) |
+| Code | Meaning                                |
+| ---- | -------------------------------------- |
+| `0`  | All tests passed                       |
+| `1`  | One or more tests failed               |
+| `2`  | Config / YAML validation error         |
+| `3`  | Connection error (database or service) |
 
 ---
 

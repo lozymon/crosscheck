@@ -4,33 +4,33 @@ Every `*.cx.yaml` test file follows this structure. All fields are optional unle
 
 ```yaml
 # yaml-language-server: $schema=./crosscheck.schema.json
-version: 1          # required
+version: 1 # required
 name: my suite
 description: optional description
 
-env: ...            # variable defaults
-auth: ...           # authentication
-mock: ...           # mock server
-setup: ...          # file-level setup hooks
-teardown: ...       # file-level teardown hooks
-tests: ...          # required — test list
+env: ... # variable defaults
+auth: ... # authentication
+mock: ... # mock server
+setup: ... # file-level setup hooks
+teardown: ... # file-level teardown hooks
+tests: ... # required — test list
 ```
 
 ---
 
 ## Top-level fields
 
-| Field | Type | Description |
-|---|---|---|
-| `version` | int | **Required.** Must be `1`. |
-| `name` | string | Suite name shown in reporter output. |
-| `description` | string | Free-text description. |
-| `env` | map | Variable defaults (lowest priority). See [Environment](environment.md). |
-| `auth` | object | Authentication config run once before all tests. See [Auth](auth.md). |
-| `mock` | object | Local mock HTTP server for outbound call capture. |
-| `setup` | list | Shell commands run before all tests. |
-| `teardown` | list | Shell commands run after all tests (always runs). |
-| `tests` | list | **Required.** List of test objects. |
+| Field         | Type   | Description                                                             |
+| ------------- | ------ | ----------------------------------------------------------------------- |
+| `version`     | int    | **Required.** Must be `1`.                                              |
+| `name`        | string | Suite name shown in reporter output.                                    |
+| `description` | string | Free-text description.                                                  |
+| `env`         | map    | Variable defaults (lowest priority). See [Environment](environment.md). |
+| `auth`        | object | Authentication config run once before all tests. See [Auth](auth.md).   |
+| `mock`        | object | Local mock HTTP server for outbound call capture.                       |
+| `setup`       | list   | Shell commands run before all tests.                                    |
+| `teardown`    | list   | Shell commands run after all tests (always runs).                       |
+| `tests`       | list   | **Required.** List of test objects.                                     |
 
 ---
 
@@ -52,7 +52,7 @@ Starts a local HTTP server that captures all incoming requests. The server URL i
 
 ```yaml
 mock:
-  port: 9099   # 0 or omit = auto-assign a free port
+  port: 9099 # 0 or omit = auto-assign a free port
 ```
 
 Assert captured calls with `adapter: mock` in the `services` block.
@@ -80,28 +80,28 @@ List of test objects.
 
 ```yaml
 tests:
-  - name: create order          # required
+  - name: create order # required
     description: optional
-    timeout: 10s                # per-test timeout
-    retry: 2                    # retry up to 2 extra times on failure
-    retry_delay: 500ms          # wait between retries
-    setup: [...]                # per-test setup hooks
-    teardown: [...]             # per-test teardown hooks
-    request: ...                # HTTP request
-    response: ...               # HTTP response assertions
-    database: [...]             # database assertions
-    services: [...]             # service assertions
+    timeout: 10s # per-test timeout
+    retry: 2 # retry up to 2 extra times on failure
+    retry_delay: 500ms # wait between retries
+    setup: [...] # per-test setup hooks
+    teardown: [...] # per-test teardown hooks
+    request: ... # HTTP request
+    response: ... # HTTP response assertions
+    database: [...] # database assertions
+    services: [...] # service assertions
 ```
 
 ### `request`
 
 ```yaml
 request:
-  method: POST          # required
-  url: "{{ BASE_URL }}/orders"   # required, supports {{ VAR }}
+  method: POST # required
+  url: '{{ BASE_URL }}/orders' # required, supports {{ VAR }}
   headers:
     Content-Type: application/json
-    X-Api-Key: "{{ API_KEY }}"
+    X-Api-Key: '{{ API_KEY }}'
   body:
     productId: abc
     quantity: 1
@@ -117,7 +117,7 @@ response:
   headers:
     Content-Type: application/json
   body:
-    id: "{{ capture: orderId }}"   # captures $.id into orderId
+    id: '{{ capture: orderId }}' # captures $.id into orderId
     status: pending
 ```
 
@@ -129,10 +129,10 @@ List of database assertion blocks. See [Adapters](adapters.md) for per-adapter d
 
 ```yaml
 database:
-  - adapter: postgres   # postgres | mysql | mongodb
-    query: "SELECT status FROM orders WHERE id = :orderId"
+  - adapter: postgres # postgres | mysql | mongodb
+    query: 'SELECT status FROM orders WHERE id = :orderId'
     params:
-      orderId: "{{ orderId }}"
+      orderId: '{{ orderId }}'
     wait_for:
       timeout: 10s
       interval: 500ms
@@ -147,7 +147,7 @@ List of service assertion blocks. See [Adapters](adapters.md) for per-adapter de
 ```yaml
 services:
   - adapter: redis
-    key: "order:{{ orderId }}"
+    key: 'order:{{ orderId }}'
     expect:
       status: pending
 
@@ -171,8 +171,8 @@ Available on `database` and `services` blocks that support async flows.
 
 ```yaml
 wait_for:
-  timeout: 10s     # how long to keep polling
-  interval: 500ms  # how long to wait between attempts
+  timeout: 10s # how long to keep polling
+  interval: 500ms # how long to wait between attempts
 ```
 
 Polling stops as soon as the assertion passes or the timeout elapses.
