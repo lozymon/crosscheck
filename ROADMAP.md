@@ -53,10 +53,10 @@
 - [x] Disconnect / cleanup
 
 ### Setup / teardown hooks
-- [ ] File-level `setup` runs before all tests
-- [ ] File-level `teardown` runs after all tests (even on failure)
-- [ ] Per-test `setup` / `teardown`
-- [ ] Shell command execution with env vars available
+- [x] File-level `setup` runs before all tests
+- [x] File-level `teardown` runs after all tests (even on failure)
+- [x] Per-test `setup` / `teardown`
+- [x] Shell command execution with env vars available
 
 ### Variable chaining
 - [ ] Capture vars from response body (`{{ capture: varName }}`)
