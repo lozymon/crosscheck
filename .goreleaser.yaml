@@ -27,7 +27,7 @@ builds:
 
 archives:
   - id: crosscheck
-    builds: [crosscheck]
+    ids: [crosscheck]
     name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
@@ -76,7 +76,7 @@ release:
     go install github.com/lozymon/crosscheck@latest
     ```
 
-brews:
+homebrew:
   - name: crosscheck
     repository:
       owner: lozymon
