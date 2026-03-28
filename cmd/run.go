@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
 
+	"github.com/lozymon/crosscheck/adapters/mongodb"
 	"github.com/lozymon/crosscheck/adapters/mysql"
 	"github.com/lozymon/crosscheck/adapters/redis"
 	"github.com/lozymon/crosscheck/config"
@@ -80,6 +82,18 @@ func runTests(cmd *cobra.Command, path string) error {
 
 	// Connect optional adapters from environment.
 	opts := runner.Options{}
+
+	if mongoURL := os.Getenv("MONGODB_URL"); mongoURL != "" {
+		mongoAdapter, mongoErr := mongodb.New(cmd.Context(), mongoURL)
+
+		if mongoErr != nil {
+			return &ExitError{Code: ExitConnectError, Message: mongoErr.Error()}
+		}
+
+		defer func() { _ = mongoAdapter.Close(context.Background()) }()
+
+		opts.MongoDB = mongoAdapter
+	}
 
 	if mysqlURL := os.Getenv("MYSQL_URL"); mysqlURL != "" {
 		mysqlAdapter, mysqlErr := mysql.New(cmd.Context(), mysqlURL)

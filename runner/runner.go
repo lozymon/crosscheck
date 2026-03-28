@@ -12,6 +12,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/lozymon/crosscheck/adapters/mongodb"
 	"github.com/lozymon/crosscheck/adapters/mysql"
 	"github.com/lozymon/crosscheck/adapters/postgres"
 	"github.com/lozymon/crosscheck/adapters/redis"
@@ -53,6 +54,10 @@ type Options struct {
 	// Postgres adapter to use for `adapter: postgres` database assertions.
 	// If nil, any test containing a postgres assertion will fail with an error.
 	Postgres *postgres.Adapter
+
+	// MongoDB adapter to use for `adapter: mongodb` database assertions.
+	// If nil, any test containing a mongodb assertion will fail with an error.
+	MongoDB *mongodb.Adapter
 
 	// MySQL adapter to use for `adapter: mysql` database assertions.
 	// If nil, any test containing a mysql assertion will fail with an error.
@@ -212,6 +217,8 @@ func runDBAssert(ctx context.Context, dbAssert config.DBAssert, vars map[string]
 		return runPostgresAssert(ctx, dbAssert, vars, opts, step)
 	case "mysql":
 		return runMySQLAssert(ctx, dbAssert, vars, opts, step)
+	case "mongodb":
+		return runMongoDBAssert(ctx, dbAssert, vars, opts, step)
 	default:
 		return []Failure{{
 			Step:    step,
@@ -326,6 +333,63 @@ func runMySQLAssert(ctx context.Context, dbAssert config.DBAssert, vars map[stri
 	var out []Failure
 
 	for _, f := range myFailures {
+		out = append(out, Failure{Step: step, Message: f.Error()})
+	}
+
+	return out
+}
+
+// runMongoDBAssert runs a MongoDB database assertion, with optional wait_for polling.
+// dbAssert.Query is the collection name; dbAssert.Params is the filter document.
+func runMongoDBAssert(ctx context.Context, dbAssert config.DBAssert, vars map[string]string, opts Options, step string) []Failure {
+	if opts.MongoDB == nil {
+		return []Failure{{
+			Step:    step,
+			Message: "mongodb adapter not configured (set MONGODB_URL to enable)",
+		}}
+	}
+
+	// Interpolate filter params.
+	interpolatedParams := make(map[string]any, len(dbAssert.Params))
+
+	for k, v := range dbAssert.Params {
+		if s, ok := v.(string); ok {
+			interpolatedParams[k] = interpolate.Apply(s, vars)
+		} else {
+			interpolatedParams[k] = v
+		}
+	}
+
+	assertCopy := dbAssert
+	assertCopy.Params = interpolatedParams
+
+	if dbAssert.WaitFor != nil {
+		mgoFailures, err := opts.MongoDB.WaitFor(ctx, &assertCopy)
+
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}
+		}
+
+		var out []Failure
+
+		for _, f := range mgoFailures {
+			out = append(out, Failure{Step: step, Message: f.Error()})
+		}
+
+		return out
+	}
+
+	docs, err := opts.MongoDB.Query(ctx, assertCopy.Query, assertCopy.Params)
+
+	if err != nil {
+		return []Failure{{Step: step, Message: err.Error()}}
+	}
+
+	mgoFailures := mongodb.Assert(docs, dbAssert.Expect)
+
+	var out []Failure
+
+	for _, f := range mgoFailures {
 		out = append(out, Failure{Step: step, Message: f.Error()})
 	}
 
