@@ -124,6 +124,43 @@
 
 ## Phase 3
 
+### Documentation
+- [ ] Getting started guide (install, first test file, run)
+- [ ] CLI reference — all commands and flags
+- [ ] YAML schema reference — every top-level key, block, and field with examples
+- [ ] Adapter guides — postgres, redis, mysql, mongodb, sqs, sns, s3, dynamodb, lambda, mock
+- [ ] Auth guide — `type: static` and `type: login` patterns
+- [ ] Variable & interpolation reference — `{{ VAR }}`, capture, chaining
+- [ ] Environment priority reference — CLI > shell > `.env` > YAML defaults
+- [ ] Global config reference — `.crosscheck.yaml` options
+- [ ] Reporter guide — pretty, json, junit, html, `--output-file`
+- [ ] Watch mode guide
+- [ ] CI/CD integration guide — GitHub Actions example workflow
+- [ ] FAQ / troubleshooting
+
+---
+
+## Phase 4
+
+### Example project — Node.js Express + Redis + MariaDB
+- [x] `examples/users-api/` — Express app:
+  - `POST /users` — insert user row into MariaDB, cache in Redis, fire webhook
+  - `GET /users/:id` — return user (read from MariaDB)
+- [x] `examples/users-api/docker-compose.yml` — services: app, Redis, MariaDB
+- [x] `examples/users-api/db/init.sql` — creates `users` table on MariaDB startup
+- [x] `examples/users-api/tests/users.cx.yaml` — full crosscheck test suite:
+  - Create user → assert HTTP 201 + capture `userId`
+  - Fetch user → assert HTTP 200 + body fields
+  - MariaDB assertion — `users` row written with correct fields (`adapter: mysql`)
+  - Redis assertion — `user:<id>` key cached with correct name (`adapter: redis`)
+  - Mock server — assert webhook fired with correct payload (`adapter: mock`)
+- [x] `examples/users-api/README.md` — walkthrough: `docker compose up`, `cx run ./tests/`
+- [ ] GitHub Actions workflow — `docker compose up -d`, wait for health checks, `cx run`, `docker compose down`
+
+---
+
+## Phase 5
+
 ### VS Code Extension
 - [ ] TextMate grammar — `{{ VAR }}`, `:namedParam`, top-level keys
 - [ ] Schema autocomplete via `yaml-language-server` + `crosscheck.schema.json`
@@ -135,7 +172,6 @@
 - [ ] DB query preview on hover
 
 ### Other
-- [ ] GitHub Actions integration docs + example workflow
 - [ ] Test generation from OpenAPI spec
 - [ ] Parallel test execution
 - [ ] OAuth2 support (client credentials, PKCE)

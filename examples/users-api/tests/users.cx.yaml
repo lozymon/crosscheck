@@ -1,0 +1,79 @@
+# yaml-language-server: $schema=../../../crosscheck.schema.json
+version: 1
+name: users-api
+
+env:
+  BASE_URL: http://localhost:3000
+
+# Start a local mock server to capture the webhook the app fires.
+# MOCK_URL is injected automatically — we pass it to the app via WEBHOOK_URL.
+mock:
+  port: 0
+
+setup:
+  - run: |
+      docker compose exec -T mariadb mariadb -ucx -pcx cx -e "DELETE FROM users;"
+
+tests:
+  - name: create user
+    request:
+      method: POST
+      url: "{{ BASE_URL }}/users"
+      headers:
+        Content-Type: application/json
+      body:
+        name: Alice
+        email: alice@example.com
+    response:
+      status: 201
+      body:
+        id: "{{ capture: userId }}"
+        name: Alice
+        email: alice@example.com
+
+    # MariaDB — row was inserted
+    database:
+      - adapter: mysql
+        query: "SELECT name, email FROM users WHERE id = :userId"
+        params:
+          userId: "{{ userId }}"
+        expect:
+          - name: Alice
+            email: alice@example.com
+
+    # Redis — key was cached
+    services:
+      - adapter: redis
+        key: "user:{{ userId }}"
+        expect:
+          name: Alice
+          email: alice@example.com
+
+      # Mock server — webhook was fired
+      - adapter: mock
+        path: /
+        method: POST
+        wait_for:
+          timeout: 5s
+          interval: 200ms
+        expect:
+          event: user.created
+          name: Alice
+
+  - name: fetch user
+    request:
+      method: GET
+      url: "{{ BASE_URL }}/users/{{ userId }}"
+    response:
+      status: 200
+      body:
+        id: "{{ userId }}"
+        name: Alice
+        email: alice@example.com
+
+  - name: fetch unknown user returns 404
+    request:
+      method: GET
+      url: "{{ BASE_URL }}/users/00000000-0000-0000-0000-000000000000"
+    response:
+      status: 404
