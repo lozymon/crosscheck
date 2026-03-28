@@ -155,7 +155,7 @@
   - Redis assertion — `user:<id>` key cached with correct name (`adapter: redis`)
   - Mock server — assert webhook fired with correct payload (`adapter: mock`)
 - [x] `examples/users-api/README.md` — walkthrough: `docker compose up`, `cx run ./tests/`
-- [ ] GitHub Actions workflow — `docker compose up -d`, wait for health checks, `cx run`, `docker compose down`
+- [x] GitHub Actions workflow — `docker compose up -d`, wait for health checks, `cx run`, `docker compose down`
 
 ---
 

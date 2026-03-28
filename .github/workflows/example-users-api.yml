@@ -1,0 +1,45 @@
+name: Example — users-api
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run crosscheck tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build cx
+        run: go build -o cx ./main.go
+
+      - name: Start stack
+        working-directory: examples/users-api
+        run: docker compose up --build -d --wait
+
+      - name: Run tests
+        working-directory: examples/users-api
+        env:
+          MYSQL_URL: root:root@tcp(localhost:3306)/cx
+          REDIS_URL: redis://localhost:6379
+        run: ../../cx run tests/ --reporter junit --output-file results.xml
+
+      - name: Publish test results
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: examples/users-api/results.xml
+
+      - name: Stop stack
+        if: always()
+        working-directory: examples/users-api
+        run: docker compose down -v

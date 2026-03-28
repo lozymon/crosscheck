@@ -29,7 +29,7 @@ jobs:
       - name: Run tests
         env:
           BASE_URL: http://localhost:3000
-          MYSQL_URL: cx:cx@tcp(localhost:3306)/cx
+          MYSQL_URL: root:root@tcp(localhost:3306)/cx
           REDIS_URL: redis://localhost:6379
         run: cx run --reporter junit --output-file results.xml
 
@@ -80,7 +80,7 @@ jobs:
 
       - name: Run tests
         env:
-          MYSQL_URL: cx:cx@tcp(localhost:3306)/cx
+          MYSQL_URL: root:root@tcp(localhost:3306)/cx
           REDIS_URL: redis://localhost:6379
           BASE_URL: http://localhost:3000
         run: cx run examples/users-api/tests/ --reporter junit --output-file results.xml
