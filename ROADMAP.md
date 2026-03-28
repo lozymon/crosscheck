@@ -59,9 +59,9 @@
 - [x] Shell command execution with env vars available
 
 ### Variable chaining
-- [ ] Capture vars from response body (`{{ capture: varName }}`)
-- [ ] Captured vars merged into interpolation namespace
-- [ ] Vars available across all subsequent steps in the file
+- [x] Capture vars from response body (`{{ capture: varName }}`)
+- [x] Captured vars merged into interpolation namespace
+- [x] Vars available across all subsequent steps in the file
 
 ### Reporter
 - [ ] Pretty CLI output (colored pass/fail per test)
