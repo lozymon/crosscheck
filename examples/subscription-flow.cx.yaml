@@ -1,0 +1,176 @@
+# yaml-language-server: $schema=https://crosscheck.dev/schema.json
+version: 1
+name: Subscription stock sync
+description: >
+  Validates that stock (capacity) stays in sync across the full subscription lifecycle:
+  create event → subscribe → validate stock → cancel in different situations → validate stock restored.
+  Covers multiple microservices communicating via SQS queues.
+
+# .env should define:
+# TOURNAMENT_SERVICE=http://tournament-svc:3000
+# SUBSCRIPTION_SERVICE=http://subscription-svc:3001
+# STOCK_SERVICE=http://stock-svc:3002
+# DB_URL=postgres://user:pass@localhost/db
+
+auth:
+  type: login
+  request:
+    method: POST
+    url: "{{ AUTH_SERVICE }}/auth/login"
+    body:
+      email: "{{ TEST_EMAIL }}"
+      password: "{{ TEST_PASSWORD }}"
+  capture:
+    token: "$.accessToken"
+  inject:
+    header: Authorization
+    format: "Bearer {{ token }}"
+
+setup:
+  - run: "psql $DB_URL -f ./fixtures/reset-stock.sql"
+
+teardown:
+  - run: "psql $DB_URL -f ./fixtures/reset-stock.sql"
+
+tests:
+
+  # ─────────────────────────────────────────────
+  # 1. Create a tournament and verify initial stock
+  # ─────────────────────────────────────────────
+  - name: Create tournament
+    description: "Creates a tournament with capacity 10, captures tournamentId for later steps"
+    request:
+      method: POST
+      url: "{{ TOURNAMENT_SERVICE }}/tournaments"
+      body:
+        name: "Test Tournament"
+        capacity: 10
+    response:
+      status: 201
+      body:
+        id: "{{ capture: tournamentId }}"
+        capacity: 10
+
+  - name: Verify initial stock
+    description: "Stock service should reflect capacity 10 before any subscriptions"
+    request:
+      method: GET
+      url: "{{ STOCK_SERVICE }}/stock/{{ tournamentId }}"
+    response:
+      status: 200
+      body:
+        capacity: 10
+        used: 0
+
+  # ─────────────────────────────────────────────
+  # 2. Subscribe first person — stock should drop to 9
+  # ─────────────────────────────────────────────
+  - name: Subscribe person 1
+    description: "Subscribes user A — triggers async SQS event to decrement stock"
+    request:
+      method: POST
+      url: "{{ SUBSCRIPTION_SERVICE }}/subscriptions"
+      body:
+        tournamentId: "{{ tournamentId }}"
+        userId: "{{ USER_A_ID }}"
+    response:
+      status: 201
+      body:
+        id: "{{ capture: subscriptionId1 }}"
+        status: active
+
+  - name: Verify stock after subscription 1
+    description: "Stock should be 9 after first subscription — async via SQS, so wait_for polls"
+    database:
+      - adapter: postgres
+        query: "SELECT capacity, used FROM stock WHERE tournament_id = :tournamentId"
+        params:
+          tournamentId: "{{ tournamentId }}"
+        wait_for:
+          timeout: 10s
+          interval: 500ms
+        expect:
+          - capacity: 10
+            used: 1
+
+  # ─────────────────────────────────────────────
+  # 3. Subscribe second person — stock should drop to 8
+  # ─────────────────────────────────────────────
+  - name: Subscribe person 2
+    description: "Subscribes user B"
+    request:
+      method: POST
+      url: "{{ SUBSCRIPTION_SERVICE }}/subscriptions"
+      body:
+        tournamentId: "{{ tournamentId }}"
+        userId: "{{ USER_B_ID }}"
+    response:
+      status: 201
+      body:
+        id: "{{ capture: subscriptionId2 }}"
+        status: active
+
+  - name: Verify stock after subscription 2
+    database:
+      - adapter: postgres
+        query: "SELECT used FROM stock WHERE tournament_id = :tournamentId"
+        params:
+          tournamentId: "{{ tournamentId }}"
+        wait_for:
+          timeout: 10s
+          interval: 500ms
+        expect:
+          - used: 2
+
+  # ─────────────────────────────────────────────
+  # 4. Cancel subscription 1 — stock should restore to used=1
+  # ─────────────────────────────────────────────
+  - name: Cancel subscription 1 (normal cancel)
+    description: "User A cancels — stock should be restored via async SQS event"
+    request:
+      method: DELETE
+      url: "{{ SUBSCRIPTION_SERVICE }}/subscriptions/{{ subscriptionId1 }}"
+    response:
+      status: 200
+      body:
+        status: cancelled
+
+  - name: Verify stock restored after cancel 1
+    database:
+      - adapter: postgres
+        query: "SELECT used FROM stock WHERE tournament_id = :tournamentId"
+        params:
+          tournamentId: "{{ tournamentId }}"
+        wait_for:
+          timeout: 10s
+          interval: 500ms
+        expect:
+          - used: 1
+
+  # ─────────────────────────────────────────────
+  # 5. TODO: Cancel scenarios to add
+  # ─────────────────────────────────────────────
+
+  # Scenario: cancel after event has started
+  # - name: Cancel after event started
+  #   description: "Cancellation after start should be rejected or handled differently — stock must not change"
+  #   ...
+
+  # Scenario: cancel when stock is already at 0 (edge case)
+  # - name: Cancel when full
+  #   ...
+
+  # Scenario: cancel non-existent subscription
+  # - name: Cancel unknown subscription
+  #   request:
+  #     method: DELETE
+  #     url: "{{ SUBSCRIPTION_SERVICE }}/subscriptions/non-existent-id"
+  #   response:
+  #     status: 404
+  #   database:
+  #     - adapter: postgres
+  #       query: "SELECT used FROM stock WHERE tournament_id = :tournamentId"
+  #       params:
+  #         tournamentId: "{{ tournamentId }}"
+  #       expect:
+  #         - used: 1   # stock must be unchanged
