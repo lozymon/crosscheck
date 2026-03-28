@@ -76,20 +76,3 @@ release:
     go install github.com/lozymon/crosscheck@latest
     ```
 
-homebrew:
-  - name: crosscheck
-    repository:
-      owner: lozymon
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    commit_author:
-      name: goreleaser
-      email: goreleaser@crosscheck.dev
-    homepage: https://github.com/lozymon/crosscheck
-    description: "End-to-end API test runner with HTTP, database, and service assertions"
-    license: MIT
-    install: |
-      bin.install "crosscheck"
-      bin.install_symlink "crosscheck" => "cx"
-    test: |
-      system "#{bin}/crosscheck", "--version"

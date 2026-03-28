@@ -86,7 +86,7 @@
 ### Distribution
 - [x] `.goreleaser.yaml` config
 - [x] GitHub Actions release workflow (triggers on git tag)
-- [x] Homebrew tap (`lozymon/homebrew-tap`)
+- [ ] Homebrew tap (`lozymon/homebrew-tap`)
 - [x] `install.sh` curl script
 
 ---
