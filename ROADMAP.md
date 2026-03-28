@@ -29,7 +29,7 @@
 ### HTTP client
 - [x] Request builder (method, URL, headers, body)
 - [x] Interpolation applied to all request fields
-- [ ] Response capture (`{{ capture: varName }}` → stored in vars)
+- [x] Response capture (`{{ capture: varName }}` → stored in vars)
 - [x] `--insecure` TLS skip
 
 ### Auth
@@ -38,11 +38,11 @@
 - [x] Auth runs once before all tests, token available in all subsequent requests
 
 ### Assertions
-- [ ] HTTP response status assertion
-- [ ] HTTP response body assertion (exact value, partial match)
-- [ ] HTTP response header assertion
-- [ ] JSONPath assertion (`$.items[0].name`)
-- [ ] Regex assertion
+- [x] HTTP response status assertion
+- [x] HTTP response body assertion (exact value, partial match)
+- [x] HTTP response header assertion
+- [x] JSONPath assertion (`$.items[0].name`)
+- [x] Regex assertion
 
 ### Postgres adapter
 - [ ] Connect via `pgx/v5`
