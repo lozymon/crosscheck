@@ -45,12 +45,12 @@
 - [x] Regex assertion
 
 ### Postgres adapter
-- [ ] Connect via `pgx/v5`
-- [ ] Named param rewriting (`:varName` → `$1`)
-- [ ] Execute query + return rows as `[]map[string]any`
-- [ ] Row assertion against `expect:` block
-- [ ] `wait_for` polling (`timeout` + `interval`)
-- [ ] Disconnect / cleanup
+- [x] Connect via `pgx/v5`
+- [x] Named param rewriting (`:varName` → `$1`)
+- [x] Execute query + return rows as `[]map[string]any`
+- [x] Row assertion against `expect:` block
+- [x] `wait_for` polling (`timeout` + `interval`)
+- [x] Disconnect / cleanup
 
 ### Setup / teardown hooks
 - [ ] File-level `setup` runs before all tests
