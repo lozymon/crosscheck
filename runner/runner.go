@@ -13,6 +13,7 @@ import (
 	"fmt"
 
 	"github.com/lozymon/crosscheck/adapters/postgres"
+	"github.com/lozymon/crosscheck/adapters/redis"
 	"github.com/lozymon/crosscheck/assert"
 	"github.com/lozymon/crosscheck/auth"
 	"github.com/lozymon/crosscheck/config"
@@ -51,6 +52,10 @@ type Options struct {
 	// Postgres adapter to use for `adapter: postgres` database assertions.
 	// If nil, any test containing a postgres assertion will fail with an error.
 	Postgres *postgres.Adapter
+
+	// Redis adapter to use for `adapter: redis` service assertions.
+	// If nil, any test containing a redis assertion will fail with an error.
+	Redis *redis.Adapter
 }
 
 // RunFile executes all tests in a parsed test file and returns a FileResult.
@@ -183,6 +188,13 @@ func runTest(
 		tr.Failures = append(tr.Failures, dbFailures...)
 	}
 
+	// Service assertions (Redis, SQS, etc.).
+	for i, svcAssert := range test.Services {
+		step := fmt.Sprintf("services[%d]", i)
+		svcFailures := runServiceAssert(ctx, svcAssert, mergedVars, opts, step)
+		tr.Failures = append(tr.Failures, svcFailures...)
+	}
+
 	tr.Passed = tr.Err == nil && len(tr.Failures) == 0
 
 	return tr
@@ -251,6 +263,47 @@ func runPostgresAssert(ctx context.Context, dbAssert config.DBAssert, vars map[s
 	var out []Failure
 
 	for _, f := range pgFailures {
+		out = append(out, Failure{Step: step, Message: f.Error()})
+	}
+
+	return out
+}
+
+// runServiceAssert dispatches a service assertion to the correct adapter handler.
+func runServiceAssert(ctx context.Context, svcAssert config.ServiceAssert, vars map[string]string, opts Options, step string) []Failure {
+	switch svcAssert.Adapter {
+	case "redis":
+		return runRedisAssert(ctx, svcAssert, vars, opts, step)
+	default:
+		return []Failure{{
+			Step:    step,
+			Message: fmt.Sprintf("adapter %q is not supported in this build", svcAssert.Adapter),
+		}}
+	}
+}
+
+// runRedisAssert runs a Redis service assertion.
+func runRedisAssert(ctx context.Context, svcAssert config.ServiceAssert, vars map[string]string, opts Options, step string) []Failure {
+	if opts.Redis == nil {
+		return []Failure{{
+			Step:    step,
+			Message: "redis adapter not configured (set REDIS_URL to enable)",
+		}}
+	}
+
+	key := interpolate.Apply(svcAssert.Key, vars)
+
+	actual, err := opts.Redis.Get(ctx, key)
+
+	if err != nil {
+		return []Failure{{Step: step, Message: err.Error()}}
+	}
+
+	redisFailures := redis.Assert(actual, svcAssert.Expect)
+
+	var out []Failure
+
+	for _, f := range redisFailures {
 		out = append(out, Failure{Step: step, Message: f.Error()})
 	}
 

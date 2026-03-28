@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/lozymon/crosscheck/adapters/redis"
 	"github.com/lozymon/crosscheck/config"
 	"github.com/lozymon/crosscheck/discovery"
 	"github.com/lozymon/crosscheck/env"
@@ -76,6 +77,21 @@ func runTests(cmd *cobra.Command, path string) error {
 		return &ExitError{Code: ExitConfigError, Message: err.Error()}
 	}
 
+	// Connect optional adapters from environment.
+	opts := runner.Options{}
+
+	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
+		redisAdapter, redisErr := redis.New(cmd.Context(), redisURL)
+
+		if redisErr != nil {
+			return &ExitError{Code: ExitConnectError, Message: redisErr.Error()}
+		}
+
+		defer func() { _ = redisAdapter.Close() }()
+
+		opts.Redis = redisAdapter
+	}
+
 	var (
 		totalFailed   int
 		allResults    []*runner.FileResult
@@ -97,7 +113,7 @@ func runTests(cmd *cobra.Command, path string) error {
 
 		vars := env.Load(runEnvFile, runEnvVars, tf.Env)
 
-		result := runner.RunFile(cmd.Context(), tf, vars, client, runner.Options{})
+		result := runner.RunFile(cmd.Context(), tf, vars, client, opts)
 
 		if writeErr := rep.Write(result); writeErr != nil {
 			fmt.Fprintf(os.Stderr, "reporter error: %v\n", writeErr)

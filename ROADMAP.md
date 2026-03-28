@@ -94,7 +94,7 @@
 ## Phase 2
 
 ### Adapters
-- [ ] Redis adapter (`go-redis/v9`)
+- [x] Redis adapter (`go-redis/v9`)
 - [ ] MySQL adapter (`go-sql-driver`)
 - [ ] MongoDB adapter (`mongo-driver`)
 - [ ] SQS adapter (`aws-sdk-go-v2`) — assert messages published to queue
