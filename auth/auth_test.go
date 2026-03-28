@@ -16,6 +16,7 @@ func TestResolve_nil(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
 	if result != nil {
 		t.Errorf("expected nil result for nil auth, got %+v", result)
 	}
@@ -38,16 +39,18 @@ func TestResolve_static(t *testing.T) {
 			Format: "Bearer {{ AUTH_TOKEN }}",
 		},
 	}, httpclient.New(false), vars)
-
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
 	if result.Header != "Authorization" {
 		t.Errorf("expected header Authorization, got %q", result.Header)
 	}
+
 	if result.Value != "Bearer mysecret" {
 		t.Errorf("expected value 'Bearer mysecret', got %q", result.Value)
 	}
+
 	if len(result.Vars) != 0 {
 		t.Errorf("expected no captured vars for static auth, got %v", result.Vars)
 	}
@@ -77,16 +80,18 @@ func TestResolve_login(t *testing.T) {
 			Format: "Bearer {{ token }}",
 		},
 	}, httpclient.New(false), vars)
-
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
 	if result.Vars["token"] != "tok_abc123" {
 		t.Errorf("expected token=tok_abc123, got %q", result.Vars["token"])
 	}
+
 	if result.Header != "Authorization" {
 		t.Errorf("expected header Authorization, got %q", result.Header)
 	}
+
 	if result.Value != "Bearer tok_abc123" {
 		t.Errorf("expected value 'Bearer tok_abc123', got %q", result.Value)
 	}
@@ -108,7 +113,6 @@ func TestResolve_login_capturePathMissing(t *testing.T) {
 		Capture: config.CaptureMap{"token": "$.accessToken"},
 		Inject:  config.AuthInject{Header: "Authorization", Format: "Bearer {{ token }}"},
 	}, httpclient.New(false), nil)
-
 	if err == nil {
 		t.Fatal("expected error when capture path not found")
 	}

@@ -23,6 +23,7 @@ func Resolve(ctx context.Context, auth *config.Auth, client *httpclient.Client, 
 	if auth == nil {
 		return nil, nil
 	}
+
 	switch auth.Type {
 	case "static":
 		return resolveStatic(auth, vars)
@@ -47,13 +48,13 @@ func resolveLogin(ctx context.Context, auth *config.Auth, client *httpclient.Cli
 	}
 
 	resp, err := client.Do(ctx, auth.Request, vars)
-
 	if err != nil {
 		return nil, fmt.Errorf("auth login request: %w", err)
 	}
 
 	// Extract each declared capture variable from the response body.
 	captured := make(map[string]string, len(auth.Capture))
+
 	for varName, path := range auth.Capture {
 		result := resp.Get(path)
 
@@ -69,9 +70,11 @@ func resolveLogin(ctx context.Context, auth *config.Auth, client *httpclient.Cli
 
 	// Merge captured vars into a local copy so the inject format string can reference them.
 	merged := make(map[string]string, len(vars)+len(captured))
+
 	for k, v := range vars {
 		merged[k] = v
 	}
+
 	for k, v := range captured {
 		merged[k] = v
 	}

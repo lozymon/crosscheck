@@ -14,6 +14,7 @@ var explainCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Explaining: %s\n", args[0])
+
 		if explainAI {
 			// TODO: implement AI-powered explanation (Phase 2)
 			fmt.Println("--ai mode not yet implemented")

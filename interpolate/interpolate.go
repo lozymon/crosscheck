@@ -11,9 +11,11 @@ var pattern = regexp.MustCompile(`\{\{\s*(\w+)\s*\}\}`)
 func Apply(s string, vars map[string]string) string {
 	return pattern.ReplaceAllStringFunc(s, func(match string) string {
 		key := pattern.FindStringSubmatch(match)[1]
+
 		if val, ok := vars[key]; ok {
 			return val
 		}
+
 		return match // leave unreplaced if not found
 	})
 }
@@ -21,8 +23,10 @@ func Apply(s string, vars map[string]string) string {
 // ApplyToMap applies interpolation to all string values in a map.
 func ApplyToMap(m map[string]string, vars map[string]string) map[string]string {
 	result := make(map[string]string, len(m))
+
 	for k, v := range m {
 		result[k] = Apply(v, vars)
 	}
+
 	return result
 }

@@ -140,7 +140,8 @@ Key dependencies: `spf13/cobra`, `gopkg.in/yaml.v3`, `joho/godotenv`, `fatih/col
 
 ## Code Style
 
-- **Blank line before every `if err != nil`** and before early returns — makes guard clauses visually distinct
+- **Blank line before `if`, `for`, `switch`, `return`** when the statement has no shared variable with the line directly above — enforced by `wsl_v5`
+- **No blank line before `if err != nil`** when `err` comes from the immediately preceding line — `wsl_v5` treats these as cuddled (they share `err`)
 - **Blank line between logically distinct steps** inside a function — each step should breathe
 - **Break long `fmt.Errorf` calls** onto multiple lines when the message + args exceed ~100 chars
 - **Section comment above each logical block** in functions longer than ~15 lines

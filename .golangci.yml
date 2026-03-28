@@ -10,6 +10,7 @@ linters:
     - exhaustive     # missing switch cases on enums
     - noctx          # http requests without context
     - bodyclose      # unclosed http response bodies
+    - wsl_v5         # blank lines around if/for/switch/return blocks
 
 formatters:
   enable:
@@ -21,6 +22,12 @@ formatters-settings:
     simplify: true
   goimports:
     local-prefixes: github.com/lozymon/crosscheck
+
+linters-settings:
+  wsl_v5:
+    allow-first-in-block: true
+    allow-whole-block: false
+    branch-max-lines: 2
 
 issues:
   max-same-issues: 0

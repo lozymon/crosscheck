@@ -13,9 +13,11 @@ var validateCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		path := "."
+
 		if len(args) == 1 {
 			path = args[0]
 		}
+
 		fmt.Printf("Validating: %s\n", path)
 		// TODO: implement schema validation
 		return nil

@@ -18,13 +18,14 @@ type Response struct {
 
 func newResponse(r *http.Response) (*Response, error) {
 	defer func() { _ = r.Body.Close() }()
-	body, err := io.ReadAll(r.Body)
 
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading response body: %w", err)
 	}
 
 	headers := make(map[string]string, len(r.Header))
+
 	for k := range r.Header {
 		headers[k] = r.Header.Get(k)
 	}
@@ -40,6 +41,7 @@ func newResponse(r *http.Response) (*Response, error) {
 // Accepts JSONPath-style "$.foo.bar" (leading "$." is stripped) or plain "foo.bar".
 func (r *Response) Get(path string) gjson.Result {
 	path = strings.TrimPrefix(path, "$.")
+
 	return gjson.GetBytes(r.Body, path)
 }
 

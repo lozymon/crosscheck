@@ -25,9 +25,11 @@ If no path is given, recursively finds all *.cx.yaml files in the current direct
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		path := "."
+
 		if len(args) == 1 {
 			path = args[0]
 		}
+
 		fmt.Printf("Running tests from: %s\n", path)
 		// TODO: implement runner
 		return nil
