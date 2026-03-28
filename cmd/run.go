@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/lozymon/crosscheck/adapters/mysql"
 	"github.com/lozymon/crosscheck/adapters/redis"
 	"github.com/lozymon/crosscheck/config"
 	"github.com/lozymon/crosscheck/discovery"
@@ -79,6 +80,18 @@ func runTests(cmd *cobra.Command, path string) error {
 
 	// Connect optional adapters from environment.
 	opts := runner.Options{}
+
+	if mysqlURL := os.Getenv("MYSQL_URL"); mysqlURL != "" {
+		mysqlAdapter, mysqlErr := mysql.New(cmd.Context(), mysqlURL)
+
+		if mysqlErr != nil {
+			return &ExitError{Code: ExitConnectError, Message: mysqlErr.Error()}
+		}
+
+		defer func() { _ = mysqlAdapter.Close() }()
+
+		opts.MySQL = mysqlAdapter
+	}
 
 	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
 		redisAdapter, redisErr := redis.New(cmd.Context(), redisURL)

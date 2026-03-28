@@ -12,6 +12,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/lozymon/crosscheck/adapters/mysql"
 	"github.com/lozymon/crosscheck/adapters/postgres"
 	"github.com/lozymon/crosscheck/adapters/redis"
 	"github.com/lozymon/crosscheck/assert"
@@ -52,6 +53,10 @@ type Options struct {
 	// Postgres adapter to use for `adapter: postgres` database assertions.
 	// If nil, any test containing a postgres assertion will fail with an error.
 	Postgres *postgres.Adapter
+
+	// MySQL adapter to use for `adapter: mysql` database assertions.
+	// If nil, any test containing a mysql assertion will fail with an error.
+	MySQL *mysql.Adapter
 
 	// Redis adapter to use for `adapter: redis` service assertions.
 	// If nil, any test containing a redis assertion will fail with an error.
@@ -205,6 +210,8 @@ func runDBAssert(ctx context.Context, dbAssert config.DBAssert, vars map[string]
 	switch dbAssert.Adapter {
 	case "postgres":
 		return runPostgresAssert(ctx, dbAssert, vars, opts, step)
+	case "mysql":
+		return runMySQLAssert(ctx, dbAssert, vars, opts, step)
 	default:
 		return []Failure{{
 			Step:    step,
@@ -263,6 +270,62 @@ func runPostgresAssert(ctx context.Context, dbAssert config.DBAssert, vars map[s
 	var out []Failure
 
 	for _, f := range pgFailures {
+		out = append(out, Failure{Step: step, Message: f.Error()})
+	}
+
+	return out
+}
+
+// runMySQLAssert runs a MySQL database assertion, with optional wait_for polling.
+func runMySQLAssert(ctx context.Context, dbAssert config.DBAssert, vars map[string]string, opts Options, step string) []Failure {
+	if opts.MySQL == nil {
+		return []Failure{{
+			Step:    step,
+			Message: "mysql adapter not configured (set MYSQL_URL to enable)",
+		}}
+	}
+
+	// Interpolate query params.
+	interpolatedParams := make(map[string]any, len(dbAssert.Params))
+
+	for k, v := range dbAssert.Params {
+		if s, ok := v.(string); ok {
+			interpolatedParams[k] = interpolate.Apply(s, vars)
+		} else {
+			interpolatedParams[k] = v
+		}
+	}
+
+	assertCopy := dbAssert
+	assertCopy.Params = interpolatedParams
+
+	if dbAssert.WaitFor != nil {
+		myFailures, err := opts.MySQL.WaitFor(ctx, &assertCopy)
+
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}
+		}
+
+		var out []Failure
+
+		for _, f := range myFailures {
+			out = append(out, Failure{Step: step, Message: f.Error()})
+		}
+
+		return out
+	}
+
+	rows, err := opts.MySQL.Query(ctx, assertCopy.Query, assertCopy.Params)
+
+	if err != nil {
+		return []Failure{{Step: step, Message: err.Error()}}
+	}
+
+	myFailures := mysql.Assert(rows, dbAssert.Expect)
+
+	var out []Failure
+
+	for _, f := range myFailures {
 		out = append(out, Failure{Step: step, Message: f.Error()})
 	}
 
