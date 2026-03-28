@@ -125,18 +125,18 @@
 ## Phase 3
 
 ### Documentation
-- [ ] Getting started guide (install, first test file, run)
-- [ ] CLI reference — all commands and flags
-- [ ] YAML schema reference — every top-level key, block, and field with examples
-- [ ] Adapter guides — postgres, redis, mysql, mongodb, sqs, sns, s3, dynamodb, lambda, mock
-- [ ] Auth guide — `type: static` and `type: login` patterns
-- [ ] Variable & interpolation reference — `{{ VAR }}`, capture, chaining
-- [ ] Environment priority reference — CLI > shell > `.env` > YAML defaults
-- [ ] Global config reference — `.crosscheck.yaml` options
-- [ ] Reporter guide — pretty, json, junit, html, `--output-file`
-- [ ] Watch mode guide
-- [ ] CI/CD integration guide — GitHub Actions example workflow
-- [ ] FAQ / troubleshooting
+- [x] Getting started guide (install, first test file, run)
+- [x] CLI reference — all commands and flags
+- [x] YAML schema reference — every top-level key, block, and field with examples
+- [x] Adapter guides — postgres, redis, mysql, mongodb, sqs, sns, s3, dynamodb, lambda, mock
+- [x] Auth guide — `type: static` and `type: login` patterns
+- [x] Variable & interpolation reference — `{{ VAR }}`, capture, chaining
+- [x] Environment priority reference — CLI > shell > `.env` > YAML defaults
+- [x] Global config reference — `.crosscheck.yaml` options
+- [x] Reporter guide — pretty, json, junit, html, `--output-file`
+- [x] Watch mode guide
+- [x] CI/CD integration guide — GitHub Actions example workflow
+- [x] FAQ / troubleshooting
 
 ---
 
