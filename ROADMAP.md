@@ -33,9 +33,9 @@
 - [x] `--insecure` TLS skip
 
 ### Auth
-- [ ] `type: static` — inject header from env var
-- [ ] `type: login` — POST login endpoint, capture token, inject header
-- [ ] Auth runs once before all tests, token available in all subsequent requests
+- [x] `type: static` — inject header from env var
+- [x] `type: login` — POST login endpoint, capture token, inject header
+- [x] Auth runs once before all tests, token available in all subsequent requests
 
 ### Assertions
 - [ ] HTTP response status assertion
