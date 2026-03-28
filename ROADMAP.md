@@ -27,10 +27,10 @@
 - [x] `{{ VAR }}` flat interpolation (`interpolate/interpolate.go`)
 
 ### HTTP client
-- [ ] Request builder (method, URL, headers, body)
-- [ ] Interpolation applied to all request fields
+- [x] Request builder (method, URL, headers, body)
+- [x] Interpolation applied to all request fields
 - [ ] Response capture (`{{ capture: varName }}` → stored in vars)
-- [ ] `--insecure` TLS skip
+- [x] `--insecure` TLS skip
 
 ### Auth
 - [ ] `type: static` — inject header from env var
