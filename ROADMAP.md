@@ -64,10 +64,10 @@
 - [x] Vars available across all subsequent steps in the file
 
 ### Reporter
-- [ ] Pretty CLI output (colored pass/fail per test)
-- [ ] Structured JSON failure output (request, response, expected, actual)
-- [ ] `--output-file` writes JSON results alongside pretty output
-- [ ] Exit codes: `0` pass / `1` fail / `2` config error / `3` connection error
+- [x] Pretty CLI output (colored pass/fail per test)
+- [x] Structured JSON failure output (request, response, expected, actual)
+- [x] `--output-file` writes JSON results alongside pretty output
+- [x] Exit codes: `0` pass / `1` fail / `2` config error / `3` connection error
 
 ### File discovery
 - [ ] `cx run` with no args finds `**/*.cx.yaml` recursively
