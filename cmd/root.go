@@ -23,9 +23,13 @@ const (
 	ExitConnectError = 3 // DB or HTTP connection error
 )
 
+// Version is set at build time via -ldflags "-X github.com/lozymon/crosscheck/cmd.Version=x.y.z".
+var Version = "dev"
+
 var rootCmd = &cobra.Command{
-	Use:   "crosscheck",
-	Short: "cx — E2E API test runner with DB and service assertions",
+	Use:     "crosscheck",
+	Short:   "cx — E2E API test runner with DB and service assertions",
+	Version: Version,
 	Long: `crosscheck (cx) runs end-to-end tests against backend APIs and validates
 the result across multiple layers: HTTP response, database state, and cloud services.`,
 	SilenceErrors: true,
