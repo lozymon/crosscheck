@@ -16,21 +16,29 @@ import (
 	"github.com/lozymon/crosscheck/runner"
 )
 
-// Reporter writes a FileResult to an output stream.
+// Reporter writes FileResult output to an output stream.
+// Write is called once per test file. Close is called after all files have
+// been processed — reporters that buffer (e.g. JUnit) flush their output there.
 type Reporter interface {
 	Write(result *runner.FileResult) error
+	Close() error
 }
 
 // New returns the Reporter for the given format name.
-// Supported formats: "pretty", "json".
+// Supported formats: "pretty", "json", "junit".
 func New(format string, w io.Writer) (Reporter, error) {
 	switch strings.ToLower(format) {
 	case "pretty", "":
 		return &prettyReporter{w: w}, nil
 	case "json":
 		return &jsonReporter{w: w}, nil
+	case "junit":
+		return &junitReporter{w: w}, nil
 	default:
-		return nil, fmt.Errorf("unknown reporter format %q: must be \"pretty\" or \"json\"", format)
+		return nil, fmt.Errorf(
+			"unknown reporter format %q: must be \"pretty\", \"json\", or \"junit\"",
+			format,
+		)
 	}
 }
 
@@ -61,6 +69,8 @@ var (
 type prettyReporter struct {
 	w io.Writer
 }
+
+func (r *prettyReporter) Close() error { return nil }
 
 func (r *prettyReporter) Write(result *runner.FileResult) error {
 	w := &errWriter{w: r.w}
@@ -181,6 +191,8 @@ type jsonFailure struct {
 type jsonReporter struct {
 	w io.Writer
 }
+
+func (r *jsonReporter) Close() error { return nil }
 
 func (r *jsonReporter) Write(result *runner.FileResult) error {
 	return writeJSON(r.w, result)

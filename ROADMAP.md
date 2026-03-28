@@ -108,7 +108,7 @@
 - [x] Watch mode (`cx run --watch`)
 
 ### Reporter
-- [ ] JUnit XML reporter (`--reporter junit`)
+- [x] JUnit XML reporter (`--reporter junit`)
 
 ### Commands
 - [ ] `cx explain --ai` — Claude API powered explanation (`CROSSCHECK_AI_KEY`)

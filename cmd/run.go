@@ -64,7 +64,7 @@ func init() {
 	runCmd.Flags().StringVar(&runFilter, "filter", "", "Run only tests matching pattern (e.g. 'order*')")
 	runCmd.Flags().BoolVar(&runInsecure, "insecure", false, "Skip TLS certificate verification")
 	runCmd.Flags().StringVar(&runOutputFile, "output-file", "", "Write JSON results to file")
-	runCmd.Flags().StringVar(&runReporter, "reporter", "pretty", "Reporter format: pretty, json")
+	runCmd.Flags().StringVar(&runReporter, "reporter", "pretty", "Reporter format: pretty, json, junit")
 	runCmd.Flags().BoolVar(&runWatch, "watch", false, "Watch for file changes and re-run (Phase 2)")
 }
 
@@ -90,6 +90,12 @@ func runTests(cmd *cobra.Command, path string) error {
 	if err != nil {
 		return &ExitError{Code: ExitConfigError, Message: err.Error()}
 	}
+
+	defer func() {
+		if closeErr := rep.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "reporter close: %v\n", closeErr)
+		}
+	}()
 
 	// Connect optional adapters from environment.
 	opts := runner.Options{}
