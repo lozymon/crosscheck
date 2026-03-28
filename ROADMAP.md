@@ -104,8 +104,8 @@
 - [x] Lambda adapter (`aws-sdk-go-v2`) — direct invocation
 
 ### Runner
-- [ ] Retry runner — honour `retry:` + `retry_delay:` fields, log each attempt
-- [ ] Watch mode (`cx run --watch`)
+- [x] Retry runner — honour `retry:` + `retry_delay:` fields, log each attempt
+- [x] Watch mode (`cx run --watch`)
 
 ### Reporter
 - [ ] JUnit XML reporter (`--reporter junit`)

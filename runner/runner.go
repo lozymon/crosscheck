@@ -40,6 +40,7 @@ type Failure struct {
 type TestResult struct {
 	Name         string
 	Passed       bool
+	Attempts     int               // total attempts made (1 = no retries used)
 	Failures     []Failure
 	Err          error             // unexpected error (hook failed, request errored, etc.)
 	CapturedVars map[string]string // vars captured during this test — chained into the next
@@ -149,7 +150,9 @@ func RunFile(ctx context.Context, tf *config.TestFile, vars map[string]string, c
 	return result
 }
 
-// runTest executes a single test step and returns its result.
+// runTest executes a single test with retry support and returns its result.
+// Per-test setup and teardown each run exactly once regardless of retry count.
+// Only the HTTP request + assertions are retried.
 func runTest(
 	ctx context.Context,
 	test config.Test,
@@ -160,14 +163,14 @@ func runTest(
 ) TestResult {
 	tr := TestResult{Name: test.Name}
 
-	// Per-test setup.
+	// Per-test setup runs once before all attempts.
 	if err := hooks.RunAll(ctx, test.Setup, vars); err != nil {
 		tr.Err = fmt.Errorf("setup: %w", err)
 
 		return tr
 	}
 
-	// Always run per-test teardown.
+	// Per-test teardown always runs after all attempts.
 	defer func() {
 		if err := hooks.RunAll(ctx, test.Teardown, vars); err != nil {
 			if tr.Err == nil {
@@ -176,7 +179,60 @@ func runTest(
 		}
 	}()
 
-	// Fire the HTTP request.
+	// Determine retry budget and delay.
+	maxAttempts := 1
+
+	if test.Retry > 0 {
+		maxAttempts = test.Retry + 1
+	}
+
+	var retryDelay time.Duration
+
+	if test.RetryDelay != "" {
+		if d, err := time.ParseDuration(test.RetryDelay); err == nil {
+			retryDelay = d
+		}
+	}
+
+	// Retry loop — only the HTTP request and assertions are retried.
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		tr.Attempts = attempt
+
+		result := attemptTest(ctx, test, vars, client, authResult, opts)
+		tr.Failures = result.Failures
+		tr.Err = result.Err
+		tr.CapturedVars = result.CapturedVars
+		tr.Passed = result.Passed
+
+		if result.Passed || attempt == maxAttempts {
+			break
+		}
+
+		// Wait before the next attempt.
+		select {
+		case <-ctx.Done():
+			tr.Err = ctx.Err()
+
+			return tr
+		case <-time.After(retryDelay):
+		}
+	}
+
+	return tr
+}
+
+// attemptTest fires the HTTP request and runs all assertions once.
+// It does not handle setup, teardown, or retries.
+func attemptTest(
+	ctx context.Context,
+	test config.Test,
+	vars map[string]string,
+	client *httpclient.Client,
+	authResult *auth.Result,
+	opts Options,
+) TestResult {
+	tr := TestResult{Name: test.Name}
+
 	if test.Request == nil {
 		tr.Err = fmt.Errorf("test %q has no request block", test.Name)
 
@@ -205,7 +261,7 @@ func runTest(
 
 	tr.CapturedVars = outVars
 
-	// Merge captures immediately so DB assertions in this same test can use them.
+	// Merge captures immediately so DB/service assertions can use them.
 	mergedVars := copyVars(vars)
 
 	for k, v := range outVars {

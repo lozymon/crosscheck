@@ -77,12 +77,20 @@ func (r *prettyReporter) Write(result *runner.FileResult) error {
 
 	// One line per test.
 	for _, tr := range result.Tests {
+		retryNote := ""
+
+		if tr.Attempts > 1 {
+			retryNote = fmt.Sprintf(" (%d attempts)", tr.Attempts)
+		}
+
 		if tr.Passed {
 			w.color(passColor, "  ✓  ")
-			w.printf("%s\n", tr.Name)
+			w.printf("%s", tr.Name)
+			w.color(dimColor, "%s\n", retryNote)
 		} else {
 			w.color(failColor, "  ✗  ")
-			w.printf("%s\n", tr.Name)
+			w.printf("%s", tr.Name)
+			w.color(dimColor, "%s\n", retryNote)
 
 			if tr.Err != nil {
 				w.color(messageColor, "     error: %v\n", tr.Err)
@@ -160,6 +168,7 @@ type jsonResult struct {
 type jsonTestResult struct {
 	Name     string        `json:"name"`
 	Passed   bool          `json:"passed"`
+	Attempts int           `json:"attempts,omitempty"`
 	Failures []jsonFailure `json:"failures,omitempty"`
 	Error    string        `json:"error,omitempty"`
 }
@@ -194,8 +203,9 @@ func writeJSON(w io.Writer, result *runner.FileResult) error {
 
 	for _, tr := range result.Tests {
 		jtr := jsonTestResult{
-			Name:   tr.Name,
-			Passed: tr.Passed,
+			Name:     tr.Name,
+			Passed:   tr.Passed,
+			Attempts: tr.Attempts,
 		}
 
 		if tr.Err != nil {

@@ -50,6 +50,10 @@ If no path is given, recursively finds all *.cx.yaml files in the current direct
 			path = args[0]
 		}
 
+		if runWatch {
+			return watchAndRun(cmd, path)
+		}
+
 		return runTests(cmd, path)
 	},
 }
