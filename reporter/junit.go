@@ -62,10 +62,10 @@ type junitTestSuite struct {
 }
 
 type junitTestCase struct {
-	Name      string         `xml:"name,attr"`
-	ClassName string         `xml:"classname,attr"`
-	Failure   *junitFailure  `xml:"failure,omitempty"`
-	Error     *junitError    `xml:"error,omitempty"`
+	Name      string        `xml:"name,attr"`
+	ClassName string        `xml:"classname,attr"`
+	Failure   *junitFailure `xml:"failure,omitempty"`
+	Error     *junitError   `xml:"error,omitempty"`
 }
 
 type junitFailure struct {

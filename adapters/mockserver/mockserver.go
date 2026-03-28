@@ -23,6 +23,7 @@
 package mockserver
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -55,7 +56,7 @@ type Server struct {
 func Start(port int) (*Server, error) {
 	addr := fmt.Sprintf("0.0.0.0:%d", port)
 
-	ln, err := net.Listen("tcp", addr)
+	ln, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", addr)
 
 	if err != nil {
 		return nil, fmt.Errorf("mock server listen %s: %w", addr, err)

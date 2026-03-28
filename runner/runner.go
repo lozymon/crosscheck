@@ -41,7 +41,7 @@ type Failure struct {
 type TestResult struct {
 	Name         string
 	Passed       bool
-	Attempts     int               // total attempts made (1 = no retries used)
+	Attempts     int // total attempts made (1 = no retries used)
 	Failures     []Failure
 	Err          error             // unexpected error (hook failed, request errored, etc.)
 	CapturedVars map[string]string // vars captured during this test — chained into the next

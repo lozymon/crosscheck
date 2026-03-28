@@ -13,8 +13,8 @@
 //
 // For tables with a sort key:
 //
-//	    sort_key_name: createdAt
-//	    sort_key: "2024-01-01"
+//	sort_key_name: createdAt
+//	sort_key: "2024-01-01"
 package dynamodb
 
 import (
