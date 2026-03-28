@@ -37,6 +37,7 @@ type Adapter struct {
 // connStr is a standard DSN, e.g. "postgres://user:pass@localhost/testdb".
 func New(ctx context.Context, connStr string) (*Adapter, error) {
 	pool, err := pgxpool.New(ctx, connStr)
+
 	if err != nil {
 		return nil, fmt.Errorf("postgres connect: %w", err)
 	}
@@ -59,11 +60,13 @@ func (a *Adapter) Close() {
 // as a slice of maps keyed by column name.
 func (a *Adapter) Query(ctx context.Context, query string, params map[string]any) ([]map[string]any, error) {
 	rewritten, args, err := rewriteParams(query, params)
+
 	if err != nil {
 		return nil, fmt.Errorf("postgres rewrite params: %w", err)
 	}
 
 	rows, err := a.pool.Query(ctx, rewritten, args...)
+
 	if err != nil {
 		return nil, fmt.Errorf("postgres query: %w", err)
 	}
@@ -93,6 +96,7 @@ func Assert(rows []map[string]any, expect []map[string]any) []Failure {
 
 		for field, expectedVal := range expectedRow {
 			actual, ok := actualRow[field]
+
 			if !ok {
 				failures = append(failures, Failure{
 					Row:      i,
@@ -125,11 +129,13 @@ func Assert(rows []map[string]any, expect []map[string]any) []Failure {
 // Uses the Timeout and Interval from the config.WaitFor block.
 func (a *Adapter) WaitFor(ctx context.Context, assert *config.DBAssert) ([]Failure, error) {
 	timeout, err := time.ParseDuration(assert.WaitFor.Timeout)
+
 	if err != nil {
 		return nil, fmt.Errorf("postgres wait_for: invalid timeout %q: %w", assert.WaitFor.Timeout, err)
 	}
 
 	interval, err := time.ParseDuration(assert.WaitFor.Interval)
+
 	if err != nil {
 		return nil, fmt.Errorf("postgres wait_for: invalid interval %q: %w", assert.WaitFor.Interval, err)
 	}
@@ -138,11 +144,13 @@ func (a *Adapter) WaitFor(ctx context.Context, assert *config.DBAssert) ([]Failu
 
 	for {
 		rows, queryErr := a.Query(ctx, assert.Query, assert.Params)
+
 		if queryErr != nil {
 			return nil, queryErr
 		}
 
 		failures := Assert(rows, assert.Expect)
+
 		if len(failures) == 0 {
 			return nil, nil
 		}
@@ -177,6 +185,7 @@ func rewriteParams(query string, params map[string]any) (string, []any, error) {
 		name := strings.TrimPrefix(match, ":")
 
 		val, ok := params[name]
+
 		if !ok {
 			rewriteErr = fmt.Errorf("param %q referenced in query but not provided", name)
 
@@ -203,6 +212,7 @@ func collectRows(rows pgx.Rows) ([]map[string]any, error) {
 
 	for rows.Next() {
 		values, err := rows.Values()
+
 		if err != nil {
 			return nil, fmt.Errorf("postgres scan row: %w", err)
 		}

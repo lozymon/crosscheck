@@ -94,15 +94,20 @@ func walk(path string, node any, resp *httpclient.Response, vars map[string]stri
 		result := resp.Get(jsonPath)
 		actual := result.String()
 
-		if captureVar, ok := parseCaptureDirective(v); ok {
+		captureVar, ok := parseCaptureDirective(v)
+
+		if ok {
 			// {{ capture: varName }} — store the actual value, no failure.
 			captured[captureVar] = actual
 
 			return
 		}
 
-		if pattern, ok := parseRegexDirective(v); ok {
+		pattern, ok := parseRegexDirective(v)
+
+		if ok {
 			re, err := regexp.Compile(pattern)
+
 			if err != nil {
 				*failures = append(*failures, Failure{
 					Field:    path,

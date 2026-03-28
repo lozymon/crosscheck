@@ -12,6 +12,7 @@ const currentVersion = 1
 // Parse reads and parses a *.cx.yaml file.
 func Parse(path string) (*TestFile, error) {
 	data, err := os.ReadFile(path)
+
 	if err != nil {
 		return nil, fmt.Errorf("could not read file %s: %w", path, err)
 	}
