@@ -76,9 +76,9 @@
 - [x] `--filter` pattern matching against test names
 
 ### Commands implementation
-- [ ] `cx validate` — parse + schema check, no requests fired
-- [ ] `cx init` — scaffold commented `crosscheck.cx.yaml` with schema hint
-- [ ] `cx explain` — static plain-English summary of a test file
+- [x] `cx validate` — parse + schema check, no requests fired
+- [x] `cx init` — scaffold commented `crosscheck.cx.yaml` with schema hint
+- [x] `cx explain` — static plain-English summary of a test file
 
 ### Schema
 - [ ] `crosscheck.schema.json` published alongside binary

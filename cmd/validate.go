@@ -2,8 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/lozymon/crosscheck/config"
+	"github.com/lozymon/crosscheck/discovery"
 )
 
 var validateCmd = &cobra.Command{
@@ -18,8 +22,35 @@ var validateCmd = &cobra.Command{
 			path = args[0]
 		}
 
-		fmt.Printf("Validating: %s\n", path)
-		// TODO: implement schema validation
+		files, err := discovery.Find(path)
+
+		if err != nil {
+			return &ExitError{Code: ExitConfigError, Message: err.Error()}
+		}
+
+		if len(files) == 0 {
+			fmt.Fprintln(os.Stderr, "no *.cx.yaml test files found")
+
+			return nil
+		}
+
+		invalid := 0
+
+		for _, file := range files {
+			_, parseErr := config.Parse(file)
+
+			if parseErr != nil {
+				fmt.Fprintf(os.Stderr, "✗  %s\n   %v\n", file, parseErr)
+				invalid++
+			} else {
+				fmt.Printf("✓  %s\n", file)
+			}
+		}
+
+		if invalid > 0 {
+			return &ExitError{Code: ExitConfigError}
+		}
+
 		return nil
 	},
 }
