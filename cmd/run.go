@@ -14,6 +14,7 @@ import (
 	"github.com/lozymon/crosscheck/adapters/lambda"
 	"github.com/lozymon/crosscheck/adapters/mongodb"
 	"github.com/lozymon/crosscheck/adapters/mysql"
+	"github.com/lozymon/crosscheck/adapters/rabbitmq"
 	"github.com/lozymon/crosscheck/adapters/redis"
 	s3adapter "github.com/lozymon/crosscheck/adapters/s3"
 	"github.com/lozymon/crosscheck/adapters/sns"
@@ -183,6 +184,18 @@ func runTests(cmd *cobra.Command, path string) error {
 		defer func() { _ = redisAdapter.Close() }()
 
 		opts.Redis = redisAdapter
+	}
+
+	if rabbitmqURL := earlyEnv["RABBITMQ_URL"]; rabbitmqURL != "" {
+		rabbitmqAdapter, rabbitmqErr := rabbitmq.New(cmd.Context(), rabbitmqURL)
+
+		if rabbitmqErr != nil {
+			return &ExitError{Code: ExitConnectError, Message: rabbitmqErr.Error()}
+		}
+
+		defer func() { _ = rabbitmqAdapter.Close() }()
+
+		opts.RabbitMQ = rabbitmqAdapter
 	}
 
 	var (

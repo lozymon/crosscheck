@@ -19,6 +19,7 @@ import (
 	"github.com/lozymon/crosscheck/adapters/mongodb"
 	"github.com/lozymon/crosscheck/adapters/mysql"
 	"github.com/lozymon/crosscheck/adapters/postgres"
+	"github.com/lozymon/crosscheck/adapters/rabbitmq"
 	"github.com/lozymon/crosscheck/adapters/redis"
 	s3adapter "github.com/lozymon/crosscheck/adapters/s3"
 	"github.com/lozymon/crosscheck/adapters/sns"
@@ -89,6 +90,9 @@ type Options struct {
 
 	// Lambda adapter to use for `adapter: lambda` service assertions.
 	Lambda *lambda.Adapter
+
+	// RabbitMQ adapter to use for `adapter: rabbitmq` service assertions.
+	RabbitMQ *rabbitmq.Adapter
 
 	// DefaultTimeout is applied to tests that do not specify their own timeout:.
 	// Value must be a valid time.Duration string (e.g. "10s", "500ms").
@@ -534,6 +538,8 @@ func runServiceAssert(ctx context.Context, svcAssert config.ServiceAssert, vars 
 		return runDynamoDBAssert(ctx, sa, opts, step)
 	case "lambda":
 		return runLambdaAssert(ctx, sa, opts, step)
+	case "rabbitmq":
+		return runRabbitMQAssert(ctx, sa, opts, step)
 	case "mock":
 		return runMockAssert(ctx, sa, opts, step)
 	default:
@@ -766,6 +772,46 @@ func runLambdaAssert(ctx context.Context, sa config.ServiceAssert, opts Options,
 	}
 
 	return out
+}
+
+// runRabbitMQAssert peeks messages from a RabbitMQ queue and asserts the payload.
+func runRabbitMQAssert(ctx context.Context, sa config.ServiceAssert, opts Options, step string) []Failure {
+	if opts.RabbitMQ == nil {
+		return []Failure{{
+			Step:    step,
+			Message: "rabbitmq adapter not configured (set RABBITMQ_URL to enable)",
+		}}
+	}
+
+	check := func() ([]Failure, error) {
+		msgs, err := opts.RabbitMQ.Peek(ctx, sa.Queue)
+
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}, nil
+		}
+
+		var out []Failure
+
+		for _, f := range rabbitmq.Assert(msgs, sa.Expect) {
+			out = append(out, Failure{Step: step, Message: f.Error()})
+		}
+
+		return out, nil
+	}
+
+	if sa.WaitFor != nil {
+		failures, err := pollServiceAssert(ctx, sa.WaitFor, check)
+
+		if err != nil {
+			return []Failure{{Step: step, Message: err.Error()}}
+		}
+
+		return failures
+	}
+
+	failures, _ := check()
+
+	return failures
 }
 
 // runMockAssert asserts that the mock capture server received the expected request.

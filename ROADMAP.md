@@ -189,7 +189,7 @@
 
 ### New crosscheck adapter
 
-- [ ] RabbitMQ adapter (`rabbitmq/amqp091-go`) — connect to broker, peek/consume message from named queue, assert payload fields
+- [x] RabbitMQ adapter (`rabbitmq/amqp091-go`) — connect to broker, peek/consume message from named queue, assert payload fields
   - Named as `adapter: rabbitmq` in test files
   - Config fields: `url`, `queue`, `routing_key`, `exchange`
   - `wait_for` polling supported (messages may arrive asynchronously)
