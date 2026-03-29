@@ -1,0 +1,130 @@
+# yaml-language-server: $schema=../../../crosscheck.schema.json
+version: 1
+name: order-pipeline — place order
+
+env:
+  BASE_URL: http://localhost:4000
+  # Used by the RabbitMQ adapter to connect to the broker.
+  RABBITMQ_URL: amqp://guest:guest@localhost:5672
+  DB_HOST: localhost
+  DB_PORT: '3307'
+  DB_USER: cx
+  DB_PASSWORD: cx
+  DB_NAME: cx
+  REDIS_URL: redis://localhost:6380
+
+# crosscheck starts a local mock server and injects MOCK_URL into the
+# variable namespace. The services pick up the URL via WEBHOOK_URL in
+# docker-compose.yml using host.docker.internal.
+mock:
+  port: 9099
+
+setup:
+  # Reset orders table and pin product stock to 2 so that placing one
+  # order tips it below the LOW_STOCK_THRESHOLD (also 2) in inventory-service.
+  - run: >-
+      docker compose -f docker-compose.yml exec -T mariadb
+      mariadb -ucx -pcx cx -e
+      "DELETE FROM orders; UPDATE products SET stock = 2 WHERE id = 'prod-001';"
+  # Flush Redis so there are no stale stock cache entries.
+  - run: docker compose -f docker-compose.yml exec -T redis redis-cli FLUSHALL
+  # Purge the assertion queue so earlier test runs don't leak messages in.
+  - run: >-
+      docker compose -f docker-compose.yml exec -T rabbitmq
+      rabbitmqctl purge_queue assert-orders
+
+teardown:
+  - run: docker compose -f docker-compose.yml down
+
+tests:
+  # ── Step 1 ── Place the order ──────────────────────────────────────────────
+  - name: place order
+    request:
+      method: POST
+      url: '{{ BASE_URL }}/orders'
+      headers:
+        Content-Type: application/json
+      body:
+        productId: prod-001
+    response:
+      status: 201
+      body:
+        orderId: '{{ capture: orderId }}'
+        productId: '{{ capture: productId }}'
+        status: placed
+
+  # ── Step 2 ── Order row persisted in MariaDB ───────────────────────────────
+  - name: order row in database
+    database:
+      - adapter: mysql
+        query: 'SELECT status FROM orders WHERE id = :orderId'
+        params:
+          orderId: '{{ orderId }}'
+        expect:
+          - status: placed
+
+  # ── Step 3 ── Event on RabbitMQ assert-orders queue ───────────────────────
+  # assert-orders is a durable queue that mirrors order-events but is never
+  # consumed by any service — it exists purely for test assertions.
+  - name: order.placed event on queue
+    services:
+      - adapter: rabbitmq
+        queue: assert-orders
+        wait_for:
+          timeout: 5s
+          interval: 200ms
+        expect:
+          event: order.placed
+          orderId: '{{ orderId }}'
+          productId: '{{ productId }}'
+
+  # ── Step 4 ── Stock decremented in MariaDB ────────────────────────────────
+  - name: stock decremented in database
+    database:
+      - adapter: mysql
+        query: 'SELECT stock FROM products WHERE id = :productId'
+        params:
+          productId: '{{ productId }}'
+        wait_for:
+          timeout: 10s
+          interval: 500ms
+        expect:
+          - stock: 1
+
+  # ── Step 5 ── Redis cache updated by inventory-service ────────────────────
+  - name: stock cached in redis
+    services:
+      - adapter: redis
+        key: 'stock:{{ productId }}'
+        wait_for:
+          timeout: 10s
+          interval: 500ms
+        expect:
+          stock: 1
+
+  # ── Step 6 ── Low-stock webhook fired (stock 1 <= threshold 2) ───────────
+  - name: low-stock webhook fired
+    services:
+      - adapter: mock
+        path: /low-stock
+        method: POST
+        wait_for:
+          timeout: 10s
+          interval: 500ms
+        expect:
+          event: low-stock
+          productId: '{{ productId }}'
+
+  # ── Step 7 ── Notification webhook fired by notification-service ──────────
+  - name: notification webhook fired
+    services:
+      - adapter: mock
+        path: /notify
+        method: POST
+        wait_for:
+          timeout: 10s
+          interval: 500ms
+        expect:
+          event: order.placed
+          orderId: '{{ orderId }}'
+          productId: '{{ productId }}'

@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=../../../crosscheck.schema.json
+version: 1
+name: order-pipeline — out of stock
+
+env:
+  BASE_URL: http://localhost:4000
+  DB_HOST: localhost
+  DB_PORT: '3307'
+  DB_USER: cx
+  DB_PASSWORD: cx
+  DB_NAME: cx
+
+setup:
+  # Drain product stock to 0 so the next order attempt is rejected.
+  - run: >-
+      docker compose -f docker-compose.yml exec -T mariadb
+      mariadb -ucx -pcx cx -e
+      "DELETE FROM orders; UPDATE products SET stock = 0 WHERE id = 'prod-001';"
+
+teardown:
+  - run: docker compose -f docker-compose.yml down
+
+tests:
+  # ── Step 1 ── Order rejected with 409 ─────────────────────────────────────
+  - name: reject order when out of stock
+    request:
+      method: POST
+      url: '{{ BASE_URL }}/orders'
+      headers:
+        Content-Type: application/json
+      body:
+        productId: prod-001
+    response:
+      status: 409
+      body:
+        error: out of stock
+
+  # ── Step 2 ── Confirm no order row was inserted ───────────────────────────
+  - name: no order row inserted
+    database:
+      - adapter: mysql
+        query: "SELECT COUNT(*) AS total FROM orders WHERE product_id = 'prod-001'"
+        expect:
+          - total: 0

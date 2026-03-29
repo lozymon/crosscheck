@@ -1,0 +1,76 @@
+{
+  "vhosts": [{ "name": "/" }],
+  "users": [{ "name": "guest", "password": "guest", "tags": "administrator" }],
+  "permissions": [
+    {
+      "user": "guest",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "order-events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "inventory-orders",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "exclusive": false,
+      "arguments": {}
+    },
+    {
+      "name": "notification-orders",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "exclusive": false,
+      "arguments": {}
+    },
+    {
+      "name": "assert-orders",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "exclusive": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "order-events",
+      "vhost": "/",
+      "destination": "inventory-orders",
+      "destination_type": "queue",
+      "routing_key": "order.#",
+      "arguments": {}
+    },
+    {
+      "source": "order-events",
+      "vhost": "/",
+      "destination": "notification-orders",
+      "destination_type": "queue",
+      "routing_key": "order.#",
+      "arguments": {}
+    },
+    {
+      "source": "order-events",
+      "vhost": "/",
+      "destination": "assert-orders",
+      "destination_type": "queue",
+      "routing_key": "order.#",
+      "arguments": {}
+    }
+  ]
+}

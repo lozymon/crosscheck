@@ -1,0 +1,97 @@
+services:
+  mariadb:
+    image: mariadb:11
+    ports:
+      - '3307:3306'
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: cx
+      MARIADB_USER: cx
+      MARIADB_PASSWORD: cx
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6380:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', 'check_port_connectivity']
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  order-api:
+    build: ./src/order-api
+    ports:
+      - '4000:3000'
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: cx
+      DB_PASSWORD: cx
+      DB_NAME: cx
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  inventory-service:
+    build: ./src/inventory-service
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: cx
+      DB_PASSWORD: cx
+      DB_NAME: cx
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      LOW_STOCK_THRESHOLD: 2
+      # crosscheck starts its mock server on the host at port 9099.
+      # host.docker.internal resolves to the host from inside the container.
+      WEBHOOK_URL: 'http://host.docker.internal:9099/'
+    extra_hosts:
+      # Required on Linux — Docker Desktop sets this automatically.
+      - 'host.docker.internal:host-gateway'
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  notification-service:
+    build: ./src/notification-service
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      WEBHOOK_URL: 'http://host.docker.internal:9099/'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
