@@ -25,15 +25,36 @@ const db = mysql.createPool({
 
 let channel;
 
-async function connectRabbitMQ() {
-  const conn = await amqp.connect(
-    process.env.RABBITMQ_URL || 'amqp://localhost',
-  );
-  channel = await conn.createChannel();
+async function connectRabbitMQ(retries = 10, delayMs = 3000) {
+  for (let i = 1; i <= retries; i++) {
+    try {
+      const conn = await amqp.connect(
+        process.env.RABBITMQ_URL || 'amqp://localhost',
+      );
+      channel = await conn.createChannel();
+      break;
+    } catch (err) {
+      if (i === retries) throw err;
+      console.log(
+        `RabbitMQ not ready (attempt ${i}/${retries}), retrying in ${delayMs}ms...`,
+      );
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
 
+  // Assert the exchange and all queues so the topology exists regardless of
+  // which service starts first. This is idempotent — other services calling
+  // assertQueue for the same queue is safe.
   await channel.assertExchange('order-events', 'topic', { durable: true });
 
-  console.log('RabbitMQ connected — exchange "order-events" ready');
+  const queues = ['inventory-orders', 'notification-orders', 'assert-orders'];
+
+  for (const q of queues) {
+    await channel.assertQueue(q, { durable: true });
+    await channel.bindQueue(q, 'order-events', 'order.#');
+  }
+
+  console.log('RabbitMQ connected — topology ready');
 }
 
 // ---------------------------------------------------------------------------

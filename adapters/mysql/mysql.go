@@ -34,11 +34,10 @@ type Adapter struct {
 }
 
 // New connects to MySQL and returns an Adapter.
-// dsn is a go-sql-driver DSN, e.g. "user:pass@tcp(localhost:3306)/testdb"
-// or a MySQL URL, e.g. "mysql://user:pass@localhost:3306/testdb".
+// dsn may be a go-sql-driver DSN ("user:pass@tcp(host:port)/db")
+// or a mysql:// URL ("mysql://user:pass@host:port/db") — both are normalised.
 func New(ctx context.Context, dsn string) (*Adapter, error) {
-	// go-sql-driver accepts mysql:// URLs natively since v1.7.
-	db, err := sql.Open("mysql", dsn)
+	db, err := sql.Open("mysql", normaliseDSN(dsn))
 
 	if err != nil {
 		return nil, fmt.Errorf("mysql open: %w", err)
@@ -56,6 +55,45 @@ func New(ctx context.Context, dsn string) (*Adapter, error) {
 // Close releases the database connection.
 func (a *Adapter) Close() error {
 	return a.db.Close()
+}
+
+// normaliseDSN converts a mysql:// URL to go-sql-driver's native DSN format.
+// If the string doesn't start with "mysql://" it is returned unchanged.
+func normaliseDSN(dsn string) string {
+	const prefix = "mysql://"
+
+	if !strings.HasPrefix(dsn, prefix) {
+		return dsn
+	}
+
+	// Strip scheme: "mysql://user:pass@host:port/db" → "user:pass@host:port/db"
+	rest := dsn[len(prefix):]
+
+	// Split on the last '@' to separate credentials from host/db.
+	at := strings.LastIndex(rest, "@")
+
+	if at < 0 {
+		return rest
+	}
+
+	creds := rest[:at]    // "user:pass"
+	hostDB := rest[at+1:] // "host:port/db"
+
+	// Split host from database path.
+	slash := strings.Index(hostDB, "/")
+
+	var host, db string
+
+	if slash < 0 {
+		host = hostDB
+		db = ""
+	} else {
+		host = hostDB[:slash]
+		db = hostDB[slash:]
+	}
+
+	// Wrap host in tcp(...) as required by go-sql-driver.
+	return fmt.Sprintf("%s@tcp(%s)%s", creds, host, db)
 }
 
 // Query rewrites named params, executes the query, and returns all rows

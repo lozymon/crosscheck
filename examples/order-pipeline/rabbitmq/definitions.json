@@ -1,15 +1,22 @@
 {
-  "vhosts": [{ "name": "/" }],
-  "users": [{ "name": "guest", "password": "guest", "tags": "administrator" }],
+  "users": [
+    {
+      "name": "cx",
+      "password_hash": "q83vARDW8xKPPqSQ4ZcI1x7BvrlHDAeUegZqHFYJdZi7LZIV",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": "administrator"
+    }
+  ],
   "permissions": [
     {
-      "user": "guest",
+      "user": "cx",
       "vhost": "/",
       "configure": ".*",
       "write": ".*",
       "read": ".*"
     }
   ],
+  "vhosts": [{ "name": "/" }],
   "exchanges": [
     {
       "name": "order-events",

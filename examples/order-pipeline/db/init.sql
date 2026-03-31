@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS orders (
   INDEX idx_product (product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Ensure the cx user has full access regardless of entrypoint init order
+GRANT ALL PRIVILEGES ON cx.* TO 'cx'@'%';
+FLUSH PRIVILEGES;
+
 -- Seed data — two products, one well-stocked and one nearly empty
 INSERT INTO products (id, name, stock) VALUES
   ('prod-001', 'Widget A', 10),

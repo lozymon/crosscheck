@@ -280,39 +280,39 @@ func attemptTest(
 ) TestResult {
 	tr := TestResult{Name: test.Name}
 
-	if test.Request == nil {
-		tr.Err = fmt.Errorf("test %q has no request block", test.Name)
-
-		return tr
-	}
-
-	req := withAuthHeader(test.Request, authResult)
-
-	resp, err := client.Do(ctx, req, vars)
-
-	if err != nil {
-		tr.Err = fmt.Errorf("request: %w", err)
-
-		return tr
-	}
-
-	// HTTP response assertions + capture.
-	assertFailures, outVars := assert.Response(test.Response, resp, vars)
-
-	for _, f := range assertFailures {
-		tr.Failures = append(tr.Failures, Failure{
-			Step:    "response",
-			Message: f.Error(),
-		})
-	}
-
-	tr.CapturedVars = outVars
-
-	// Merge captures immediately so DB/service assertions can use them.
+	// mergedVars starts as a copy of vars and grows with any HTTP captures.
 	mergedVars := copyVars(vars)
 
-	for k, v := range outVars {
-		mergedVars[k] = v
+	// HTTP request + response assertions (skipped when no request block is present).
+	// Tests that only assert DB/service state — e.g. "confirm no row inserted" —
+	// legitimately have no request block.
+	if test.Request != nil {
+		req := withAuthHeader(test.Request, authResult)
+
+		resp, err := client.Do(ctx, req, vars)
+
+		if err != nil {
+			tr.Err = fmt.Errorf("request: %w", err)
+
+			return tr
+		}
+
+		// HTTP response assertions + capture.
+		assertFailures, outVars := assert.Response(test.Response, resp, vars)
+
+		for _, f := range assertFailures {
+			tr.Failures = append(tr.Failures, Failure{
+				Step:    "response",
+				Message: f.Error(),
+			})
+		}
+
+		tr.CapturedVars = outVars
+
+		// Merge captures so DB/service assertions can reference captured vars.
+		for k, v := range outVars {
+			mergedVars[k] = v
+		}
 	}
 
 	// Database assertions.

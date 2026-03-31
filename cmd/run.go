@@ -219,6 +219,10 @@ func runTests(cmd *cobra.Command, path string) error {
 
 		vars := env.Load(runEnvFile, runEnvVars, tf.Env)
 
+		// Inject the YAML file's directory so setup/teardown hooks can reference
+		// it with $CX_FILE_DIR — e.g. docker compose --project-directory $CX_FILE_DIR/..
+		vars["CX_FILE_DIR"] = filepath.Dir(file)
+
 		result := runner.RunFile(cmd.Context(), tf, vars, client, opts)
 
 		if writeErr := rep.Write(result); writeErr != nil {
